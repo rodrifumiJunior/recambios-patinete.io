@@ -1,0 +1,18 @@
+{
+  "name": "Recambios Patinete — Panel de venta",
+  "short_name": "Recambios",
+  "description": "Panel de venta de recambios de patinete eléctrico entre particulares: catálogo, IA, mensajes, ofertas y CRM.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#10151d",
+  "theme_color": "#1f3a5f",
+  "lang": "es",
+  "icons": [
+    { "src": "icons/icon-192.png?v=2", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192.png?v=2", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

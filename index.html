@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Recambios Patinete — Panel de venta</title>
+<link rel="stylesheet" href="styles.css" />
+
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#1f3a5f" />
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png?v=2" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Recambios" />
+</head>
+<body>
+
+<header class="mobile-topbar">
+  <button id="hamburger-btn" class="hamburger-btn" aria-label="Abrir menú">☰</button>
+  <img src="icons/icon-192.png?v=2" alt="" class="mobile-topbar-logo" />
+  <span class="mobile-topbar-title">Recambios Patinete</span>
+</header>
+<div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><img src="icons/icon-192.png?v=2" alt="" /></div>
+      <div class="brand-text">
+        <strong>Recambios Patinete</strong>
+        <span>Panel de venta entre particulares</span>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="#/inicio" data-route="/inicio" class="nav-link">
+        <span class="nav-icon">🏠</span> Inicio
+      </a>
+
+      <div class="nav-section-label">Vender</div>
+      <a href="#/catalogo" data-route="/catalogo" class="nav-link">
+        <span class="nav-icon">🗂️</span> Catálogo
+      </a>
+      <a href="#/nuevo" data-route="/nuevo" class="nav-link">
+        <span class="nav-icon">➕</span> Nuevo artículo
+      </a>
+
+      <div class="nav-section-label">Gestionar</div>
+      <a href="#/crm" data-route="/crm" class="nav-link">
+        <span class="nav-icon">📋</span> CRM
+      </a>
+      <a href="#/ofertas" data-route="/ofertas" class="nav-link">
+        <span class="nav-icon">💬</span> Ofertas
+        <span class="nav-badge" id="badge-ofertas" hidden>0</span>
+      </a>
+      <a href="#/mantenimiento" data-route="/mantenimiento" class="nav-link">
+        <span class="nav-icon">🛠️</span> Mantenimiento
+        <span class="nav-badge" id="badge-mantenimiento" hidden>0</span>
+      </a>
+
+      <div class="nav-section-label">Analizar</div>
+      <a href="#/tendencias" data-route="/tendencias" class="nav-link">
+        <span class="nav-icon">📈</span> Tendencias del sector
+      </a>
+
+      <div class="nav-section-label">Configurar</div>
+      <a href="#/conexiones" data-route="/conexiones" class="nav-link">
+        <span class="nav-icon">🔌</span> Conexiones
+      </a>
+      <a href="#/descargar" data-route="/descargar" class="nav-link">
+        <span class="nav-icon">📲</span> Descargar app
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button id="btn-seed" class="btn-ghost small">Cargar ejemplo</button>
+      <button id="btn-reset" class="btn-ghost small danger">Vaciar datos</button>
+      <p class="fine-print">Todo se guarda solo en este navegador. La publicación en cada plataforma la haces tú, manualmente.</p>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <!-- rendered by js/app.js -->
+  </main>
+
+</div>
+
+<nav class="bottom-tabbar">
+  <a href="#/inicio" data-route="/inicio" class="tab-item">
+    <span class="tab-icon">🏠</span><span class="tab-label">Inicio</span>
+  </a>
+  <a href="#/catalogo" data-route="/catalogo" class="tab-item">
+    <span class="tab-icon">🗂️</span><span class="tab-label">Catálogo</span>
+  </a>
+  <a href="#/nuevo" data-route="/nuevo" class="tab-item tab-item-cta">
+    <span class="tab-icon">➕</span><span class="tab-label">Nuevo</span>
+  </a>
+  <a href="#/ofertas" data-route="/ofertas" class="tab-item">
+    <span class="tab-icon">💬</span><span class="tab-label">Ofertas</span>
+    <span class="tab-badge" id="tab-badge-ofertas" hidden>0</span>
+  </a>
+  <button id="more-tab-btn" class="tab-item">
+    <span class="tab-icon">☰</span><span class="tab-label">Más</span>
+  </button>
+</nav>
+
+<div id="toast" class="toast" hidden></div>
+
+<div id="install-banner" class="install-banner" hidden>
+  <span class="install-banner-icon">📲</span>
+  <span id="install-banner-text" class="install-banner-text"></span>
+  <div class="install-banner-actions">
+    <button id="install-banner-action" class="btn small" hidden>Instalar</button>
+    <button id="install-banner-dismiss" class="btn-ghost small">Ahora no</button>
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
