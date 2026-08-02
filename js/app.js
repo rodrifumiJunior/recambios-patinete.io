@@ -13,7 +13,7 @@ document.addEventListener("pwa-install-available", () => {
   if ((parseHash().parts[0] || "inicio") === "descargar") render();
 });
 
-const LAN_URL_HINT = "http://192.168.1.132:5501/";
+const PUBLIC_APP_URL = "https://rodrifumijunior.github.io/recambios-patinete.io/";
 
 const main = document.getElementById("main");
 const toastEl = document.getElementById("toast");
@@ -970,15 +970,15 @@ function renderDescargar() {
       <div><h1>Descargar app en el móvil</h1><p>Instálala como una app en Android o iPhone, sin tiendas de aplicaciones: se abre desde el navegador y queda con icono propio y funcionando sin conexión.</p></div>
     </div>
 
-    <div class="disclaimer-banner">📶 Esto solo funciona con el móvil conectado a la <strong>misma red WiFi</strong> que este ordenador, y con este ordenador encendido — es un acceso dentro de tu red local, no un enlace público de internet.</div>
+    <div class="disclaimer-banner">🌐 Esta app está publicada en internet: se abre igual con WiFi o con datos móviles, desde cualquier sitio, sin depender de tu ordenador ni de tu red.</div>
 
     <div class="card card-pad" style="margin-bottom:18px;">
-      <div class="section-title">1. Conecta el móvil a la misma WiFi y abre este enlace</div>
+      <div class="section-title">1. Abre este enlace desde tu móvil</div>
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <input type="text" id="lan-url-input" value="${esc(LAN_URL_HINT)}" style="flex:1; min-width:220px;" />
-        <button class="btn-outline small" data-action="copy-text" data-copy="${esc(LAN_URL_HINT)}">📋 Copiar enlace</button>
+        <input type="text" id="lan-url-input" value="${esc(PUBLIC_APP_URL)}" readonly style="flex:1; min-width:220px;" />
+        <button class="btn-outline small" data-action="copy-text" data-copy="${esc(PUBLIC_APP_URL)}">📋 Copiar enlace</button>
       </div>
-      <p class="hint" style="margin-top:8px;">¿No carga? Ejecuta <code>ipconfig</code> en tu ordenador, busca la "Dirección IPv4" de tu WiFi y sustitúyela aquí manteniendo el puerto 5501.</p>
+      <p class="hint" style="margin-top:8px;">Envíatelo por WhatsApp, SMS o email para abrirlo cómodamente desde el móvil.</p>
     </div>
 
     <div class="card card-pad" style="margin-bottom:18px;">
