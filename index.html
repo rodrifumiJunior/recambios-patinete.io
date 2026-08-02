@@ -14,8 +14,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Recambios" />
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+<script>
+  if (localStorage.getItem("rc_patinete_auth")) { document.documentElement.classList.add("auth-ok"); }
+</script>
+
+<div class="auth-gate">
+  <div class="auth-card">
+    <img src="icons/icon-192.png?v=2" alt="" class="auth-logo" />
+    <h1>Recambios Patinete</h1>
+    <p>Inicia sesión con tu cuenta de Google para entrar al panel de venta.</p>
+    <div id="g_id_signin" class="google-btn-slot"></div>
+    <p class="auth-fine-print">Solo se usa para identificarte al entrar. Tu catálogo, ofertas y mensajes siguen guardándose únicamente en este dispositivo.</p>
+  </div>
+</div>
 
 <header class="mobile-topbar">
   <button id="hamburger-btn" class="hamburger-btn" aria-label="Abrir menú">☰</button>
@@ -78,6 +92,11 @@
     </nav>
 
     <div class="sidebar-footer">
+      <div id="auth-profile-chip" class="auth-profile-chip" hidden>
+        <img src="" alt="" />
+        <span></span>
+        <button data-action="sign-out" class="icon-btn" title="Cerrar sesión">⏻</button>
+      </div>
       <button id="btn-seed" class="btn-ghost small">Cargar ejemplo</button>
       <button id="btn-reset" class="btn-ghost small danger">Vaciar datos</button>
       <p class="fine-print">Todo se guarda solo en este navegador. La publicación en cada plataforma la haces tú, manualmente.</p>

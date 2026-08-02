@@ -8,9 +8,11 @@ import { computeDemand, topStars, lowDemand, suggestionForLowDemand } from "./de
 import { SECTOR_TRENDS, SECTOR_BRAND_NOTE, countItemsInCategory } from "./sectorTrends.js";
 import { initPWA, isIOS, isInstalled, canPromptInstall, promptInstall } from "./pwa.js";
 import { initConnectivity } from "./connectivity.js";
+import { initAuth, signOut } from "./auth.js";
 
 initPWA();
 initConnectivity(toast);
+initAuth();
 document.addEventListener("pwa-install-available", () => {
   if ((parseHash().parts[0] || "inicio") === "descargar") render();
 });
@@ -1006,6 +1008,11 @@ document.addEventListener("click", async (e) => {
 
   if (action === "go") {
     navigate(el.dataset.href);
+    return;
+  }
+
+  if (action === "sign-out") {
+    signOut();
     return;
   }
 
