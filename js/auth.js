@@ -4,8 +4,7 @@
 // de uso, no una barrera de seguridad. Los datos del catálogo siguen viviendo
 // solo en este dispositivo, el login no los sincroniza entre aparatos.
 
-// Sustituir por el Client ID real creado en Google Cloud Console (ver Conexiones > Google).
-const CLIENT_ID = "TU_CLIENT_ID.apps.googleusercontent.com";
+const CLIENT_ID = "731313791471-s5h00hvciketaiemlov9o8lcivjbbs4m.apps.googleusercontent.com";
 
 const AUTH_KEY = "rc_patinete_auth";
 
