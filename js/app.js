@@ -7,8 +7,10 @@ import { ORDER_STAGES, stageMeta } from "./pipeline.js";
 import { computeDemand, topStars, lowDemand, suggestionForLowDemand } from "./demand.js";
 import { SECTOR_TRENDS, SECTOR_BRAND_NOTE, countItemsInCategory } from "./sectorTrends.js";
 import { initPWA, isIOS, isInstalled, canPromptInstall, promptInstall } from "./pwa.js";
+import { initConnectivity } from "./connectivity.js";
 
 initPWA();
+initConnectivity(toast);
 document.addEventListener("pwa-install-available", () => {
   if ((parseHash().parts[0] || "inicio") === "descargar") render();
 });
@@ -52,11 +54,11 @@ function daysAgoLabel(iso) {
   return `hace ${d} días`;
 }
 
-function toast(msg) {
+export function toast(msg, duration = 2600) {
   toastEl.textContent = msg;
   toastEl.hidden = false;
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => (toastEl.hidden = true), 2600);
+  toast._t = setTimeout(() => (toastEl.hidden = true), duration);
 }
 
 function navigate(hash) {
