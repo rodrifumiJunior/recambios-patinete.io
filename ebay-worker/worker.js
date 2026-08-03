@@ -312,6 +312,34 @@ async function handleSuggestCategoryDebug(env, request) {
   }
 }
 
+async function handleShippingServicesDebug(env) {
+  const accessToken = await getValidAccessToken(env);
+  if (!accessToken) return json({ error: "No hay una cuenta de eBay conectada." }, env, 400);
+  const requestXml = `<?xml version="1.0" encoding="utf-8"?>
+<GeteBayDetailsRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <DetailName>ShippingServiceDetails</DetailName>
+</GeteBayDetailsRequest>`;
+  const resp = await fetch(EBAY_TRADING_API_URL, {
+    method: "POST",
+    headers: tradingApiHeaders(env, "GeteBayDetails", accessToken),
+    body: requestXml,
+  });
+  const xml = await resp.text();
+  const services = [];
+  const blocks = xml.split("<ShippingServiceDetails>").slice(1);
+  for (const block of blocks) {
+    const validForSelling = textBetween(block, "ValidForSellingFlow");
+    const isDomestic = textBetween(block, "InternationalService") !== "true";
+    if (validForSelling === "true" && isDomestic) {
+      services.push({
+        code: textBetween(block, "ShippingService"),
+        description: textBetween(block, "Description"),
+      });
+    }
+  }
+  return json({ ok: resp.ok && !xml.includes("<Ack>Failure</Ack>"), count: services.length, services: services.slice(0, 40), raw: xml.slice(0, 500) }, env);
+}
+
 async function handleCreateListing(env, request) {
   const accessToken = await getValidAccessToken(env);
   if (!accessToken) return json({ error: "No hay una cuenta de eBay conectada todavía." }, env, 400);
@@ -530,6 +558,14 @@ export default {
     if (url.pathname === "/api/suggest-category" && request.method === "GET") {
       try {
         return await handleSuggestCategoryDebug(env, request);
+      } catch (err) {
+        return json({ error: err.message }, env, 500);
+      }
+    }
+
+    if (url.pathname === "/api/shipping-services" && request.method === "GET") {
+      try {
+        return await handleShippingServicesDebug(env);
       } catch (err) {
         return json({ error: err.message }, env, 500);
       }
