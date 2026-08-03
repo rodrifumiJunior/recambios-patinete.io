@@ -248,46 +248,68 @@ async function getSellerProfiles(env, accessToken) {
   return profiles;
 }
 
-async function getSuggestedCategoriesRaw(env, accessToken, query) {
-  const requestXml = `<?xml version="1.0" encoding="utf-8"?>
-<GetSuggestedCategoriesRequest xmlns="urn:ebay:apis:eBLBaseComponents">
-  <Query>${escapeXml(query)}</Query>
-</GetSuggestedCategoriesRequest>`;
-  const resp = await fetch(EBAY_TRADING_API_URL, {
-    method: "POST",
-    headers: tradingApiHeaders(env, "GetSuggestedCategories", accessToken),
-    body: requestXml,
+// GetSuggestedCategories (Trading API) fue retirada por eBay (HTTP 410 Gone).
+// La sustituye la Commerce Taxonomy API (REST), que usa un token de aplicación
+// (client_credentials), no el token de usuario que usamos para el resto de llamadas.
+
+async function getAppAccessToken(env) {
+  const body = new URLSearchParams({
+    grant_type: "client_credentials",
+    scope: "https://api.ebay.com/oauth/api_scope",
   });
-  const xml = await resp.text();
-  return { ok: resp.ok && !xml.includes("<Ack>Failure</Ack>"), xml, status: resp.status, headers: Object.fromEntries(resp.headers) };
+  const resp = await fetch(EBAY_OAUTH_TOKEN_URL, {
+    method: "POST",
+    headers: { Authorization: basicAuthHeader(env), "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error("No se pudo obtener el token de aplicación de eBay: " + JSON.stringify(data));
+  return data.access_token;
 }
 
-function parseSuggestedCategories(xml) {
-  const suggestions = [];
-  const blocks = xml.split("<SuggestedCategory>").slice(1);
-  for (const block of blocks) {
-    const id = textBetween(block, "CategoryID");
-    const name = textBetween(block, "CategoryName");
-    if (id) suggestions.push({ id, name });
-  }
-  return suggestions;
+async function getCategoryTreeId(appToken) {
+  const resp = await fetch("https://api.ebay.com/commerce/taxonomy/v1/get_default_category_tree_id?marketplace_id=EBAY_ES", {
+    headers: { Authorization: `Bearer ${appToken}` },
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error("No se pudo obtener el árbol de categorías de eBay: " + JSON.stringify(data));
+  return data.categoryTreeId;
 }
 
-async function suggestCategoryId(env, accessToken, query) {
-  const { ok, xml } = await getSuggestedCategoriesRaw(env, accessToken, query);
+async function getSuggestedCategoriesRaw(env, query) {
+  const appToken = await getAppAccessToken(env);
+  const treeId = await getCategoryTreeId(appToken);
+  const resp = await fetch(
+    `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${treeId}/get_category_suggestions?q=${encodeURIComponent(query)}`,
+    { headers: { Authorization: `Bearer ${appToken}` } }
+  );
+  const data = await resp.json().catch(() => null);
+  return { ok: resp.ok, status: resp.status, data };
+}
+
+function parseSuggestedCategories(data) {
+  if (!data?.categorySuggestions) return [];
+  return data.categorySuggestions
+    .map((s) => ({ id: s.category?.categoryId, name: s.category?.categoryName }))
+    .filter((s) => s.id);
+}
+
+async function suggestCategoryId(env, query) {
+  const { ok, data } = await getSuggestedCategoriesRaw(env, query);
   if (!ok) return null;
-  const suggestions = parseSuggestedCategories(xml);
-  return suggestions[0]?.id || null;
+  return parseSuggestedCategories(data)[0]?.id || null;
 }
 
 async function handleSuggestCategoryDebug(env, request) {
-  const accessToken = await getValidAccessToken(env);
-  if (!accessToken) return json({ error: "No hay una cuenta de eBay conectada." }, env, 400);
   const url = new URL(request.url);
   const query = url.searchParams.get("q");
   if (!query) return json({ error: "Falta el parámetro ?q=titulo" }, env, 400);
-  const { ok, xml, status, headers } = await getSuggestedCategoriesRaw(env, accessToken, query);
-  return json({ ok, status, headers, query, suggestions: parseSuggestedCategories(xml), raw: xml.slice(0, 3000), rawLength: xml.length }, env);
+  try {
+    const { ok, status, data } = await getSuggestedCategoriesRaw(env, query);
+    return json({ ok, status, query, suggestions: parseSuggestedCategories(data), raw: data }, env);
+  } catch (err) {
+    return json({ error: err.message }, env, 500);
+  }
 }
 
 async function handleCreateListing(env, request) {
@@ -301,18 +323,18 @@ async function handleCreateListing(env, request) {
   }
 
   let categoryId = providedCategoryId;
-  let categoryDebugXml = "";
+  let categoryDebugInfo = null;
   if (!categoryId) {
-    const { ok, xml } = await getSuggestedCategoriesRaw(env, accessToken, title);
-    categoryDebugXml = xml;
-    if (ok) categoryId = parseSuggestedCategories(xml)[0]?.id || null;
+    const { ok, data } = await getSuggestedCategoriesRaw(env, title);
+    categoryDebugInfo = data;
+    if (ok) categoryId = parseSuggestedCategories(data)[0]?.id || null;
   }
   if (!categoryId) {
     return json(
       {
         error:
           "No se pudo sugerir una categoría de eBay automáticamente para ese título. Indica una categoría manualmente.",
-        raw: categoryDebugXml.slice(0, 2000),
+        raw: JSON.stringify(categoryDebugInfo).slice(0, 2000),
       },
       env,
       400
