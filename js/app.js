@@ -95,6 +95,7 @@ function render() {
   else if (route === "mantenimiento") renderMantenimiento();
   else if (route === "ofertas") renderOfertas();
   else if (route === "crm") renderCRM();
+  else if (route === "plataformas") renderPlataformasGlobal();
   else if (route === "conexiones") renderConexiones();
   else if (route === "tendencias") renderTendencias();
   else if (route === "descargar") renderDescargar();
@@ -887,6 +888,50 @@ function renderCRM() {
           </table></div>`
         : `<div class="empty-state"><div class="emoji">📋</div><p>Añade artículos al catálogo para verlos aquí.</p></div>`}
     </div>`;
+}
+
+// ---------- view: plataformas (resumen global) ----------
+function renderPlataformasGlobal() {
+  const items = Store.getItems();
+
+  const sections = PLATFORM_LIST.map((meta) => {
+    const published = items.filter((i) => i.platforms[meta.key]?.published);
+    const rows = published.length
+      ? published
+          .map((item) => {
+            const state = item.platforms[meta.key];
+            const label = item.title || item.type || "Sin título";
+            const linkHtml =
+              meta.key === "ebay" && state.ebayUrl
+                ? `<a href="${esc(state.ebayUrl)}" target="_blank" rel="noopener" class="btn-outline small">Ver en eBay ↗</a>`
+                : `<a href="${meta.url}" target="_blank" rel="noopener" class="btn-outline small">Abrir ${meta.name} ↗</a>`;
+            return `
+        <div class="platform-summary-row">
+          <div>
+            <a href="#/articulo/${item.id}/plataformas" style="font-weight:600; text-decoration:none; color:inherit;">${esc(label)}</a>
+            <div class="hint">${fmtEuro(item.price)} · ${item.sold ? "Vendido" : `Stock: ${item.stock}`} · Publicado ${fmtDate(state.publishedAt)}</div>
+          </div>
+          ${linkHtml}
+        </div>`;
+          })
+          .join("")
+      : `<p class="hint">Todavía no has publicado ningún artículo aquí.</p>`;
+
+    return `
+      <details class="platform-summary-card">
+        <summary>
+          <span class="platform-summary-name">${meta.name}</span>
+          <span class="badge ${published.length ? "badge-approved" : "badge-info"}">${published.length} artículo${published.length === 1 ? "" : "s"}</span>
+        </summary>
+        <div class="platform-summary-body">${rows}</div>
+      </details>`;
+  }).join("");
+
+  main.innerHTML = `
+    <div class="view-header">
+      <div><h1>Plataformas</h1><p>Un desplegable por plataforma con los artículos que tienes publicados en cada una.</p></div>
+    </div>
+    <div class="card card-pad">${sections}</div>`;
 }
 
 // ---------- view: conexiones ----------

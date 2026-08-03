@@ -352,6 +352,20 @@ table.simple-table select { font-size: 12.5px; padding: 6px 8px; }
 
 .line-chart-wrap { overflow-x: auto; }
 
+/* ---------- Plataformas (resumen global) ---------- */
+.platform-summary-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+.platform-summary-card summary {
+  padding: 14px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; list-style: none;
+}
+.platform-summary-card summary::-webkit-details-marker { display: none; }
+.platform-summary-name { font-weight: 700; font-size: 13.5px; }
+.platform-summary-name::before { content: "▸"; display: inline-block; margin-right: 8px; transition: transform .15s ease; color: var(--text-muted); }
+.platform-summary-card[open] .platform-summary-name::before { transform: rotate(90deg); }
+.platform-summary-body { padding: 4px 16px 14px; border-top: 1px solid var(--border); }
+.platform-summary-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.platform-summary-row:last-child { border-bottom: none; }
+
 /* ---------- Tendencias del sector ---------- */
 .trend-card { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--border); }
 .trend-card:last-child { border-bottom: none; }
