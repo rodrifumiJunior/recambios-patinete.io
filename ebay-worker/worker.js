@@ -259,7 +259,7 @@ async function getSuggestedCategoriesRaw(env, accessToken, query) {
     body: requestXml,
   });
   const xml = await resp.text();
-  return { ok: resp.ok && !xml.includes("<Ack>Failure</Ack>"), xml };
+  return { ok: resp.ok && !xml.includes("<Ack>Failure</Ack>"), xml, status: resp.status, headers: Object.fromEntries(resp.headers) };
 }
 
 function parseSuggestedCategories(xml) {
@@ -286,8 +286,8 @@ async function handleSuggestCategoryDebug(env, request) {
   const url = new URL(request.url);
   const query = url.searchParams.get("q");
   if (!query) return json({ error: "Falta el parámetro ?q=titulo" }, env, 400);
-  const { ok, xml } = await getSuggestedCategoriesRaw(env, accessToken, query);
-  return json({ ok, query, suggestions: parseSuggestedCategories(xml), raw: xml.slice(0, 3000) }, env);
+  const { ok, xml, status, headers } = await getSuggestedCategoriesRaw(env, accessToken, query);
+  return json({ ok, status, headers, query, suggestions: parseSuggestedCategories(xml), raw: xml.slice(0, 3000), rawLength: xml.length }, env);
 }
 
 async function handleCreateListing(env, request) {
