@@ -28,6 +28,7 @@
 //   POST /api/photos     -> sube una foto (data URL) y devuelve una URL pública propia
 //   GET  /photo/:id      -> sirve esa foto (la usa eBay para mostrarla en el anuncio)
 //   POST /api/listings   -> crea un anuncio real en eBay (AddFixedPriceItem)
+//   GET  /api/suggest-category?q=titulo -> solo lectura, para depurar la sugerencia de categoría
 
 const EBAY_OAUTH_AUTHORIZE_URL = "https://auth.ebay.com/oauth2/authorize";
 const EBAY_OAUTH_TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";
@@ -247,7 +248,7 @@ async function getSellerProfiles(env, accessToken) {
   return profiles;
 }
 
-async function suggestCategoryId(env, accessToken, query) {
+async function getSuggestedCategoriesRaw(env, accessToken, query) {
   const requestXml = `<?xml version="1.0" encoding="utf-8"?>
 <GetSuggestedCategoriesRequest xmlns="urn:ebay:apis:eBLBaseComponents">
   <Query>${escapeXml(query)}</Query>
@@ -258,8 +259,35 @@ async function suggestCategoryId(env, accessToken, query) {
     body: requestXml,
   });
   const xml = await resp.text();
-  if (!resp.ok || xml.includes("<Ack>Failure</Ack>")) return null;
-  return textBetween(xml, "CategoryID") || null;
+  return { ok: resp.ok && !xml.includes("<Ack>Failure</Ack>"), xml };
+}
+
+function parseSuggestedCategories(xml) {
+  const suggestions = [];
+  const blocks = xml.split("<SuggestedCategory>").slice(1);
+  for (const block of blocks) {
+    const id = textBetween(block, "CategoryID");
+    const name = textBetween(block, "CategoryName");
+    if (id) suggestions.push({ id, name });
+  }
+  return suggestions;
+}
+
+async function suggestCategoryId(env, accessToken, query) {
+  const { ok, xml } = await getSuggestedCategoriesRaw(env, accessToken, query);
+  if (!ok) return null;
+  const suggestions = parseSuggestedCategories(xml);
+  return suggestions[0]?.id || null;
+}
+
+async function handleSuggestCategoryDebug(env, request) {
+  const accessToken = await getValidAccessToken(env);
+  if (!accessToken) return json({ error: "No hay una cuenta de eBay conectada." }, env, 400);
+  const url = new URL(request.url);
+  const query = url.searchParams.get("q");
+  if (!query) return json({ error: "Falta el parámetro ?q=titulo" }, env, 400);
+  const { ok, xml } = await getSuggestedCategoriesRaw(env, accessToken, query);
+  return json({ ok, query, suggestions: parseSuggestedCategories(xml), raw: xml.slice(0, 3000) }, env);
 }
 
 async function handleCreateListing(env, request) {
@@ -273,11 +301,22 @@ async function handleCreateListing(env, request) {
   }
 
   let categoryId = providedCategoryId;
+  let categoryDebugXml = "";
   if (!categoryId) {
-    categoryId = await suggestCategoryId(env, accessToken, title);
+    const { ok, xml } = await getSuggestedCategoriesRaw(env, accessToken, title);
+    categoryDebugXml = xml;
+    if (ok) categoryId = parseSuggestedCategories(xml)[0]?.id || null;
   }
   if (!categoryId) {
-    return json({ error: "No se pudo sugerir una categoría de eBay automáticamente para ese título. Indica una categoría manualmente." }, env, 400);
+    return json(
+      {
+        error:
+          "No se pudo sugerir una categoría de eBay automáticamente para ese título. Indica una categoría manualmente.",
+        raw: categoryDebugXml.slice(0, 2000),
+      },
+      env,
+      400
+    );
   }
 
   let profiles;
@@ -464,6 +503,14 @@ export default {
 
     if (url.pathname.startsWith("/photo/") && request.method === "GET") {
       return await handlePhoto(env, url.pathname.slice("/photo/".length));
+    }
+
+    if (url.pathname === "/api/suggest-category" && request.method === "GET") {
+      try {
+        return await handleSuggestCategoryDebug(env, request);
+      } catch (err) {
+        return json({ error: err.message }, env, 500);
+      }
     }
 
     if (url.pathname === "/api/listings" && request.method === "POST") {

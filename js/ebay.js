@@ -48,7 +48,9 @@ export async function createEbayListing(listing) {
   });
   const data = await res.json();
   if (!res.ok || data.error || data.published === false) {
-    throw new Error(data.error || (data.raw ? data.raw.slice(0, 400) : "eBay rechazó la publicación"));
+    const base = data.error || "eBay rechazó la publicación";
+    const detail = data.raw ? ` (${data.raw.slice(0, 300)})` : "";
+    throw new Error(base + detail);
   }
   return data; // { published: true, itemId, viewUrl }
 }

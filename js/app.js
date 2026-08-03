@@ -726,6 +726,11 @@ function renderTabDatos(item) {
       <label>Stock disponible</label>
       <input type="number" id="d-stock" value="${item.stock}" min="0" step="1" data-id="${item.id}" data-field="stock" ${item.sold ? "disabled" : ""} />
     </div>
+    <div class="field" style="max-width:280px;">
+      <label>Categoría de eBay (ID) <span class="hint">opcional</span></label>
+      <input type="text" id="d-ebay-category" value="${esc(item.ebayCategoryId || "")}" data-id="${item.id}" data-field="ebayCategoryId" placeholder="Ej. 122912" />
+      <p class="hint" style="margin:2px 0 0;">Solo hace falta si al publicar en eBay te sale que no se pudo sugerir automáticamente.</p>
+    </div>
     <div class="field">
       <label>Fotos</label>
       <div class="photo-preview-row">
@@ -1171,6 +1176,7 @@ document.addEventListener("click", async (e) => {
         minOfferPrice: item.minPrice,
         autoAcceptPrice: item.price,
         pictureUrls,
+        categoryId: item.ebayCategoryId || undefined,
       });
       const platforms = {
         ...item.platforms,
@@ -1379,8 +1385,9 @@ function saveDatosTab(id) {
   const minPriceRaw = document.getElementById("d-minprice").value;
   const minPrice = minPriceRaw === "" ? null : Number(minPriceRaw);
   const stock = Number(document.getElementById("d-stock").value) || 0;
+  const ebayCategoryId = document.getElementById("d-ebay-category").value.trim();
   const condition = document.querySelector('input[name="datos-condition"]:checked')?.value || item.condition;
-  Store.updateItem(id, { type, brand, defect, price, minPrice, stock, condition });
+  Store.updateItem(id, { type, brand, defect, price, minPrice, stock, ebayCategoryId, condition });
   toast("Datos guardados");
   render();
 }
