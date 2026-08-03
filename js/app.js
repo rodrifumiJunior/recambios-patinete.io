@@ -9,7 +9,7 @@ import { SECTOR_TRENDS, SECTOR_BRAND_NOTE, countItemsInCategory } from "./sector
 import { initPWA, isIOS, isInstalled, canPromptInstall, promptInstall } from "./pwa.js";
 import { initConnectivity } from "./connectivity.js";
 import { initAuth, signOut } from "./auth.js";
-import { getConnectUrl, getEbayStatus, getEbayMessages, sendEbayReply } from "./ebay.js";
+import { getConnectUrl, getEbayStatus, getEbayMessages, sendEbayReply, uploadEbayPhoto, createEbayListing } from "./ebay.js";
 
 initPWA();
 initConnectivity(toast);
@@ -592,12 +592,13 @@ function renderTabPlataformas(item) {
             <div style="display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;">
               <button class="btn-outline small" data-action="copy-platform-text" data-id="${item.id}" data-platform="${meta.key}">📋 Copiar texto</button>
               <a class="btn-outline small" href="${meta.url}" target="_blank" rel="noopener">Abrir ${meta.name} ↗</a>
+              ${meta.key !== "ebay" ? `
               <label class="checkbox-row" style="margin-left:auto;">
                 <input type="checkbox" data-action="toggle-platform-publish" data-id="${item.id}" data-platform="${meta.key}" ${state.published ? "checked" : ""} ${canPublish ? "" : "disabled"} />
                 Ya lo publiqué manualmente
-              </label>
+              </label>` : ""}
             </div>
-            ${state.published ? `<p class="hint">Marcado como publicado el ${fmtDate(state.publishedAt)}.</p>` : !canPublish ? `<p class="hint">Aprueba el borrador en la pestaña «Descripción» antes de marcarlo como publicado.</p>` : ""}
+            ${meta.key === "ebay" ? renderEbayPublishArea(item, state, canPublish) : (state.published ? `<p class="hint">Marcado como publicado el ${fmtDate(state.publishedAt)}.</p>` : !canPublish ? `<p class="hint">Aprueba el borrador en la pestaña «Descripción» antes de marcarlo como publicado.</p>` : "")}
           ` : ""}
         </div>
       </div>`;
@@ -606,6 +607,21 @@ function renderTabPlataformas(item) {
   return `
     <div class="disclaimer-banner">🖐️ La publicación es siempre manual: el botón final de "publicar" lo pulsas tú en cada app.</div>
     ${rows}`;
+}
+
+function renderEbayPublishArea(item, state, canPublish) {
+  if (state.published && state.ebayItemId) {
+    return `<p class="hint">✅ Publicado de verdad en eBay (artículo <a href="${esc(state.ebayUrl)}" target="_blank" rel="noopener">${esc(state.ebayItemId)}</a>).</p>`;
+  }
+  if (!canPublish) {
+    return `<p class="hint">Aprueba el borrador en la pestaña «Descripción» antes de publicar.</p>`;
+  }
+  if (!item.photos.length) {
+    return `<p class="hint">Añade al menos una foto en «Datos y stock» antes de publicar en eBay.</p>`;
+  }
+  return `
+    <button class="btn btn-accent small" data-action="ebay-publish-listing" data-id="${item.id}">🚀 Publicar automáticamente en eBay</button>
+    <p class="hint" style="margin-top:6px;">Usa el precio (${fmtEuro(item.price)}), stock (${item.stock}) y precio mínimo orientativo${item.minPrice !== null ? ` (${fmtEuro(item.minPrice)})` : ""} ya definidos en «Datos y stock» para configurar Best Offer con auto-aceptar/auto-rechazar.</p>`;
 }
 
 function renderTabOfertas(item) {
@@ -1080,6 +1096,43 @@ document.addEventListener("click", async (e) => {
 
   if (action === "go") {
     navigate(el.dataset.href);
+    return;
+  }
+
+  if (action === "ebay-publish-listing") {
+    const item = Store.getItem(el.dataset.id);
+    if (!item) return;
+    const originalLabel = el.textContent;
+    el.disabled = true;
+    try {
+      el.textContent = "Subiendo fotos…";
+      const pictureUrls = [];
+      for (const photo of item.photos) {
+        pictureUrls.push(await uploadEbayPhoto(photo));
+      }
+      el.textContent = "Publicando en eBay…";
+      const result = await createEbayListing({
+        title: item.title,
+        description: item.description,
+        price: item.price,
+        quantity: item.stock,
+        conditionId: item.condition === "nuevo" ? 1000 : 3000,
+        minOfferPrice: item.minPrice,
+        autoAcceptPrice: item.price,
+        pictureUrls,
+      });
+      const platforms = {
+        ...item.platforms,
+        ebay: { ...item.platforms.ebay, published: true, publishedAt: new Date().toISOString(), ebayItemId: result.itemId, ebayUrl: result.viewUrl },
+      };
+      Store.updateItem(item.id, { platforms });
+      toast("🚀 Publicado en eBay de verdad ✔");
+      render();
+    } catch (err) {
+      toast("No se pudo publicar en eBay: " + err.message, 6000);
+      el.disabled = false;
+      el.textContent = originalLabel;
+    }
     return;
   }
 

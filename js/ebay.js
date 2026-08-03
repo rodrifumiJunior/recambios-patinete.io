@@ -24,6 +24,35 @@ export async function getEbayMessages() {
   return data.messages || [];
 }
 
+export async function uploadEbayPhoto(dataUrl) {
+  const res = await fetch(`${WORKER_URL}/api/photos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dataUrl }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || "No se pudo subir la foto a eBay");
+  return data.url;
+}
+
+/**
+ * @param {{title:string, description:string, price:number, quantity:number,
+ *          conditionId:number, minOfferPrice:number|null, autoAcceptPrice:number|null,
+ *          pictureUrls:string[]}} listing
+ */
+export async function createEbayListing(listing) {
+  const res = await fetch(`${WORKER_URL}/api/listings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(listing),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error || data.published === false) {
+    throw new Error(data.error || (data.raw ? data.raw.slice(0, 400) : "eBay rechazó la publicación"));
+  }
+  return data; // { published: true, itemId, viewUrl }
+}
+
 export async function sendEbayReply({ itemId, recipientId, text }) {
   const res = await fetch(`${WORKER_URL}/api/messages/reply`, {
     method: "POST",

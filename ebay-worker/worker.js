@@ -25,6 +25,9 @@
 //   GET  /api/messages   -> lista mensajes de compradores (GetMemberMessages)
 //   POST /api/messages/reply -> responde un mensaje (AddMemberMessageAAQToPartner)
 //   GET  /api/status     -> indica si ya hay una cuenta de eBay conectada
+//   POST /api/photos     -> sube una foto (data URL) y devuelve una URL pública propia
+//   GET  /photo/:id      -> sirve esa foto (la usa eBay para mostrarla en el anuncio)
+//   POST /api/listings   -> crea un anuncio real en eBay (AddFixedPriceItem)
 
 const EBAY_OAUTH_AUTHORIZE_URL = "https://auth.ebay.com/oauth2/authorize";
 const EBAY_OAUTH_TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";
@@ -34,6 +37,7 @@ const OAUTH_SCOPES = [
   "https://api.ebay.com/oauth/api_scope",
   "https://api.ebay.com/oauth/api_scope/sell.account",
   "https://api.ebay.com/oauth/api_scope/sell.fulfillment",
+  "https://api.ebay.com/oauth/api_scope/sell.inventory",
 ].join(" ");
 
 function corsHeaders(env) {
@@ -188,6 +192,163 @@ async function handleGetMessages(env) {
   return json({ connected: true, messages }, env);
 }
 
+function base64ToBytes(base64) {
+  const binStr = atob(base64);
+  const bytes = new Uint8Array(binStr.length);
+  for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+  return bytes;
+}
+
+async function handleUploadPhoto(env, request) {
+  const { dataUrl } = await request.json();
+  const match = /^data:(image\/[a-zA-Z]+);base64,(.+)$/.exec(dataUrl || "");
+  if (!match) return json({ error: "Formato de imagen no válido (se esperaba un data URL image/*)." }, env, 400);
+  const [, contentType, base64] = match;
+  const bytes = base64ToBytes(base64);
+  const id = crypto.randomUUID();
+  await env.EBAY_TOKENS.put(`photo:${id}`, bytes.buffer);
+  await env.EBAY_TOKENS.put(`photo:${id}:type`, contentType);
+  const url = new URL(request.url);
+  return json({ url: `${url.origin}/photo/${id}` }, env);
+}
+
+async function handlePhoto(env, id) {
+  const bytes = await env.EBAY_TOKENS.get(`photo:${id}`, "arrayBuffer");
+  if (!bytes) return new Response("Not found", { status: 404 });
+  const contentType = (await env.EBAY_TOKENS.get(`photo:${id}:type`)) || "image/jpeg";
+  return new Response(bytes, {
+    headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000, immutable" },
+  });
+}
+
+async function getSellerProfiles(env, accessToken) {
+  const requestXml = `<?xml version="1.0" encoding="utf-8"?>
+<GetUserPreferencesRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <ShowSellerProfilePreferences>true</ShowSellerProfilePreferences>
+</GetUserPreferencesRequest>`;
+  const resp = await fetch(EBAY_TRADING_API_URL, {
+    method: "POST",
+    headers: tradingApiHeaders(env, "GetUserPreferences", accessToken),
+    body: requestXml,
+  });
+  const xml = await resp.text();
+  if (!resp.ok || xml.includes("<Ack>Failure</Ack>")) {
+    throw new Error("No se pudieron obtener las políticas de negocio de eBay: " + xml.slice(0, 1500));
+  }
+  const profiles = { payment: null, shipping: null, return: null };
+  const blocks = xml.split("<SupportedSellerProfile>").slice(1);
+  for (const block of blocks) {
+    const type = textBetween(block, "ProfileType");
+    const id = textBetween(block, "ProfileID");
+    if (type.includes("PAYMENT") && !profiles.payment) profiles.payment = id;
+    if (type.includes("SHIPPING") && !profiles.shipping) profiles.shipping = id;
+    if (type.includes("RETURN") && !profiles.return) profiles.return = id;
+  }
+  return profiles;
+}
+
+async function suggestCategoryId(env, accessToken, query) {
+  const requestXml = `<?xml version="1.0" encoding="utf-8"?>
+<GetSuggestedCategoriesRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <Query>${escapeXml(query)}</Query>
+</GetSuggestedCategoriesRequest>`;
+  const resp = await fetch(EBAY_TRADING_API_URL, {
+    method: "POST",
+    headers: tradingApiHeaders(env, "GetSuggestedCategories", accessToken),
+    body: requestXml,
+  });
+  const xml = await resp.text();
+  if (!resp.ok || xml.includes("<Ack>Failure</Ack>")) return null;
+  return textBetween(xml, "CategoryID") || null;
+}
+
+async function handleCreateListing(env, request) {
+  const accessToken = await getValidAccessToken(env);
+  if (!accessToken) return json({ error: "No hay una cuenta de eBay conectada todavía." }, env, 400);
+
+  const body = await request.json();
+  const { title, description, price, quantity, conditionId, minOfferPrice, autoAcceptPrice, pictureUrls, categoryId: providedCategoryId } = body;
+  if (!title || !description || !price || !pictureUrls?.length) {
+    return json({ error: "Faltan datos obligatorios: título, descripción, precio o fotos." }, env, 400);
+  }
+
+  let categoryId = providedCategoryId;
+  if (!categoryId) {
+    categoryId = await suggestCategoryId(env, accessToken, title);
+  }
+  if (!categoryId) {
+    return json({ error: "No se pudo sugerir una categoría de eBay automáticamente para ese título. Indica una categoría manualmente." }, env, 400);
+  }
+
+  let profiles;
+  try {
+    profiles = await getSellerProfiles(env, accessToken);
+  } catch (err) {
+    return json({ error: err.message }, env, 500);
+  }
+  if (!profiles.payment || !profiles.shipping || !profiles.return) {
+    return json(
+      {
+        error:
+          "Tu cuenta de eBay no tiene políticas de negocio (pago/envío/devolución) configuradas. Ve a eBay > Configuración de la cuenta > Políticas de negocio y créalas antes de publicar por API.",
+      },
+      env,
+      400
+    );
+  }
+
+  const picturesXml = pictureUrls.map((u) => `<PictureURL>${escapeXml(u)}</PictureURL>`).join("");
+
+  let bestOfferXml = "";
+  if (minOfferPrice) {
+    bestOfferXml = `
+    <BestOfferDetails>
+      <BestOfferEnabled>true</BestOfferEnabled>
+    </BestOfferDetails>
+    <ListingDetails>
+      ${autoAcceptPrice ? `<BestOfferAutoAcceptPrice currencyID="EUR">${Number(autoAcceptPrice).toFixed(2)}</BestOfferAutoAcceptPrice>` : ""}
+      <MinimumBestOfferPrice currencyID="EUR">${Number(minOfferPrice).toFixed(2)}</MinimumBestOfferPrice>
+    </ListingDetails>`;
+  }
+
+  const requestXml = `<?xml version="1.0" encoding="utf-8"?>
+<AddFixedPriceItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <ErrorLanguage>es_ES</ErrorLanguage>
+  <WarningLevel>High</WarningLevel>
+  <Item>
+    <Title>${escapeXml(title.slice(0, 80))}</Title>
+    <Description>${escapeXml(description)}</Description>
+    <PrimaryCategory><CategoryID>${escapeXml(categoryId)}</CategoryID></PrimaryCategory>
+    <StartPrice currencyID="EUR">${Number(price).toFixed(2)}</StartPrice>
+    <ConditionID>${escapeXml(String(conditionId || 3000))}</ConditionID>
+    <Country>ES</Country>
+    <Currency>EUR</Currency>
+    <DispatchTimeMax>3</DispatchTimeMax>
+    <ListingDuration>GTC</ListingDuration>
+    <ListingType>FixedPriceItem</ListingType>
+    <Quantity>${Number(quantity) || 1}</Quantity>
+    <PictureDetails>${picturesXml}</PictureDetails>
+    <SellerProfiles>
+      <SellerPaymentProfile><PaymentProfileID>${escapeXml(profiles.payment)}</PaymentProfileID></SellerPaymentProfile>
+      <SellerReturnProfile><ReturnProfileID>${escapeXml(profiles.return)}</ReturnProfileID></SellerReturnProfile>
+      <SellerShippingProfile><ShippingProfileID>${escapeXml(profiles.shipping)}</ShippingProfileID></SellerShippingProfile>
+    </SellerProfiles>${bestOfferXml}
+  </Item>
+</AddFixedPriceItemRequest>`;
+
+  const resp = await fetch(EBAY_TRADING_API_URL, {
+    method: "POST",
+    headers: tradingApiHeaders(env, "AddFixedPriceItem", accessToken),
+    body: requestXml,
+  });
+  const xml = await resp.text();
+  if (!resp.ok || xml.includes("<Ack>Failure</Ack>")) {
+    return json({ published: false, raw: xml.slice(0, 3000) }, env, 502);
+  }
+  const itemId = textBetween(xml, "ItemID");
+  return json({ published: true, itemId, viewUrl: itemId ? `https://www.ebay.es/itm/${itemId}` : null }, env);
+}
+
 async function handleReply(env, request) {
   const accessToken = await getValidAccessToken(env);
   if (!accessToken) return json({ error: "No hay una cuenta de eBay conectada todavía." }, env, 400);
@@ -288,6 +449,26 @@ export default {
     if (url.pathname === "/api/messages/reply" && request.method === "POST") {
       try {
         return await handleReply(env, request);
+      } catch (err) {
+        return json({ error: err.message }, env, 500);
+      }
+    }
+
+    if (url.pathname === "/api/photos" && request.method === "POST") {
+      try {
+        return await handleUploadPhoto(env, request);
+      } catch (err) {
+        return json({ error: err.message }, env, 500);
+      }
+    }
+
+    if (url.pathname.startsWith("/photo/") && request.method === "GET") {
+      return await handlePhoto(env, url.pathname.slice("/photo/".length));
+    }
+
+    if (url.pathname === "/api/listings" && request.method === "POST") {
+      try {
+        return await handleCreateListing(env, request);
       } catch (err) {
         return json({ error: err.message }, env, 500);
       }
