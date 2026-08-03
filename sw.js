@@ -2,7 +2,7 @@
 // se ha cargado al menos una vez. Los datos (catálogo, mensajes, ofertas) viven
 // en localStorage del navegador, no aquí — esto solo cachea los ficheros de la app.
 
-const CACHE_VERSION = "rc-patinete-v12";
+const CACHE_VERSION = "rc-patinete-v13";
 
 const APP_SHELL = [
   "./",
@@ -30,7 +30,16 @@ const APP_SHELL = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting())
+    caches
+      .open(CACHE_VERSION)
+      .then((cache) =>
+        Promise.all(
+          APP_SHELL.map((url) =>
+            fetch(url, { cache: "reload" }).then((response) => cache.put(url, response))
+          )
+        )
+      )
+      .then(() => self.skipWaiting())
   );
 });
 
