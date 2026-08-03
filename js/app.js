@@ -9,6 +9,7 @@ import { SECTOR_TRENDS, SECTOR_BRAND_NOTE, countItemsInCategory } from "./sector
 import { initPWA, isIOS, isInstalled, canPromptInstall, promptInstall } from "./pwa.js";
 import { initConnectivity } from "./connectivity.js";
 import { initAuth, signOut } from "./auth.js";
+import { getConnectUrl, getEbayStatus, getEbayMessages, sendEbayReply } from "./ebay.js";
 
 initPWA();
 initConnectivity(toast);
@@ -732,7 +733,7 @@ function renderTabMensajes(item) {
     : `<div class="chat-empty">Todavía no hay mensajes registrados para este artículo.</div>`;
 
   return `
-    <div class="disclaimer-banner">🔌 No hay sincronización automática: Wallapop, Vinted, Milanuncios y Facebook no ofrecen API pública para particulares, y la de eBay exigiría un servidor propio. Copia aquí lo que te escriban y prepara la respuesta; el envío final lo haces en la propia app de cada plataforma.</div>
+    <div class="disclaimer-banner">🔌 Wallapop, Vinted, Milanuncios y Facebook no ofrecen API pública para particulares: copia aquí lo que te escriban y prepara la respuesta, el envío final lo haces en la propia app. <strong>Para eBay</strong>, ve a Conexiones — ahí los mensajes son reales, se leen y se responden sin copiar/pegar.</div>
 
     <div class="section-title">Conversación</div>
     <div class="chat-log">${chatHtml}</div>
@@ -876,7 +877,7 @@ function renderCRM() {
 function renderConexiones() {
   const connections = Store.getConnections();
 
-  const cards = PLATFORM_LIST.map((meta) => {
+  const cards = PLATFORM_LIST.filter((m) => m.key !== "ebay").map((meta) => {
     const conn = connections[meta.key] || {};
     return `
     <div class="connection-card">
@@ -898,15 +899,86 @@ function renderConexiones() {
     </div>`;
   }).join("");
 
-  return (main.innerHTML = `
+  const ebayConn = connections.ebay || {};
+
+  main.innerHTML = `
     <div class="view-header">
-      <div><h1>Conexiones</h1><p>No se piden contraseñas ni claves de acceso aquí, solo tu usuario y enlace público en cada plataforma, para tenerlo a mano.</p></div>
+      <div><h1>Conexiones</h1><p>No se piden contraseñas ni claves de acceso aquí, salvo eBay, que usa el inicio de sesión oficial de eBay (nunca ves ni guardas tu contraseña en esta app).</p></div>
     </div>
-    <div class="disclaimer-banner">🔒 Ninguna de estas plataformas permite hoy una sincronización automática real y segura sin un servidor propio. Wallapop, Vinted, Milanuncios y Facebook no tienen API pública para particulares; la de eBay existe pero conectarla exigiría credenciales de aplicación y un backend, algo fuera de este prototipo. Por eso mensajes y publicación se preparan aquí y se envían a mano en cada app.</div>
+    <div class="disclaimer-banner">🔒 Wallapop, Vinted, Milanuncios y Facebook no tienen API pública para particulares: ahí mensajes y publicación se preparan aquí y se envían a mano. <strong>eBay es la excepción</strong>: está conectada de verdad a través de un backend propio, así que puedes leer y responder mensajes reales sin copiar/pegar.</div>
+
+    <div class="connection-card" id="ebay-connection-card">
+      <div class="connection-head">
+        <h3>eBay</h3>
+        <span class="api-pill yes">Conectado de verdad</span>
+      </div>
+      <p class="hint" id="ebay-status-text">Comprobando conexión…</p>
+      <div id="ebay-connect-area"></div>
+      <div class="form-grid" style="margin-top:14px;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Tu usuario en eBay</label>
+          <input type="text" data-conn-field="username" data-platform="ebay" value="${esc(ebayConn.username || "")}" placeholder="Ej. @tunombre" />
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Enlace a tu perfil/tienda</label>
+          <input type="text" data-conn-field="profileUrl" data-platform="ebay" value="${esc(ebayConn.profileUrl || "")}" placeholder="https://…" />
+        </div>
+      </div>
+      <div id="ebay-messages-area" style="margin-top:16px;"></div>
+    </div>
+
     <form data-form="save-connections">
       ${cards}
       <button type="submit" class="btn">💾 Guardar conexiones</button>
-    </form>`);
+    </form>`;
+
+  loadEbayStatus();
+}
+
+async function loadEbayStatus() {
+  const statusText = document.getElementById("ebay-status-text");
+  const connectArea = document.getElementById("ebay-connect-area");
+  if (!statusText) return;
+  const status = await getEbayStatus();
+  if (status.offline) {
+    statusText.textContent = "No se pudo comprobar la conexión (sin acceso a internet ahora mismo).";
+    return;
+  }
+  if (status.connected) {
+    statusText.innerHTML = `<span class="badge badge-approved">Conectada</span> Ya puedes ver y responder mensajes reales de eBay.`;
+    connectArea.innerHTML = `<button class="btn-outline small" data-action="ebay-refresh-messages">🔄 Actualizar mensajes</button>`;
+    loadEbayMessages();
+  } else {
+    statusText.innerHTML = `<span class="badge badge-draft">No conectada</span>`;
+    connectArea.innerHTML = `<a class="btn btn-accent small" href="${getConnectUrl()}" target="_blank" rel="noopener">🔗 Conectar mi cuenta de eBay</a>`;
+  }
+}
+
+async function loadEbayMessages() {
+  const messagesArea = document.getElementById("ebay-messages-area");
+  if (!messagesArea) return;
+  messagesArea.innerHTML = `<p class="hint">Cargando mensajes…</p>`;
+  try {
+    const messages = await getEbayMessages();
+    messagesArea.innerHTML = messages.length
+      ? messages
+          .map(
+            (m, i) => `
+        <div class="offer-item">
+          <div class="offer-head"><strong>${esc(m.sender)}</strong><span class="hint">${fmtDate(m.creationDate)}</span></div>
+          <p style="font-size:13px; margin:6px 0;">${esc(m.text)}</p>
+          <p class="hint" style="margin:0 0 8px;">Artículo eBay: ${esc(m.itemId)}</p>
+          <div class="field" style="margin-bottom:8px;">
+            <textarea data-role="ebay-reply-text" data-index="${i}" rows="2" placeholder="Escribe tu respuesta…"></textarea>
+          </div>
+          <button class="btn btn-accent small" data-action="ebay-send-reply" data-item-id="${esc(m.itemId)}" data-recipient="${esc(m.sender)}" data-index="${i}">📤 Enviar respuesta real</button>
+        </div>`
+          )
+          .join("")
+      : `<p class="hint">No tienes mensajes de compradores en eBay ahora mismo.</p>`;
+  } catch (err) {
+    messagesArea.innerHTML = `<p class="hint" style="color:var(--danger);">Error consultando mensajes de eBay: ${esc(err.message)}</p>`;
+  }
 }
 
 // ---------- view: tendencias del sector ----------
@@ -1008,6 +1080,30 @@ document.addEventListener("click", async (e) => {
 
   if (action === "go") {
     navigate(el.dataset.href);
+    return;
+  }
+
+  if (action === "ebay-refresh-messages") {
+    loadEbayMessages();
+    return;
+  }
+
+  if (action === "ebay-send-reply") {
+    const textarea = document.querySelector(`[data-role="ebay-reply-text"][data-index="${el.dataset.index}"]`);
+    const text = textarea?.value.trim();
+    if (!text) {
+      toast("Escribe una respuesta antes de enviarla");
+      return;
+    }
+    el.disabled = true;
+    try {
+      await sendEbayReply({ itemId: el.dataset.itemId, recipientId: el.dataset.recipient, text });
+      toast("Respuesta enviada a eBay ✔");
+      loadEbayMessages();
+    } catch (err) {
+      toast("No se pudo enviar: " + err.message, 4500);
+      el.disabled = false;
+    }
     return;
   }
 

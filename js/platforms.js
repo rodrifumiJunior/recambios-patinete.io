@@ -48,7 +48,7 @@ export const PLATFORMS = {
     offerChannel: "\"Best Offer\"",
     notes: "Cuenta gratuita de particular, sin usar la API para publicar.",
     apiAvailable: true,
-    syncNote: "Sí tiene API pública de mensajería, pero conectarla de verdad exige un servidor propio (OAuth y claves seguras) que este prototipo no incluye. Por ahora funciona igual que las demás: copiar/pegar manual.",
+    syncNote: "Conectada de verdad a través de un backend propio: ver los mensajes reales y responderlos en la pestaña Conexiones.",
   },
   facebook: {
     key: "facebook",
