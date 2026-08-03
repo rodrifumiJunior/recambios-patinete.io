@@ -599,7 +599,14 @@ function renderTabPlataformas(item) {
                 Ya lo publiqué manualmente
               </label>` : ""}
             </div>
-            ${meta.key === "ebay" ? renderEbayPublishArea(item, state, canPublish) : (state.published ? `<p class="hint">Marcado como publicado el ${fmtDate(state.publishedAt)}.</p>` : !canPublish ? `<p class="hint">Aprueba el borrador en la pestaña «Descripción» antes de marcarlo como publicado.</p>` : "")}
+            ${meta.key === "ebay" ? renderEbayPublishArea(item, state, canPublish) : `
+              ${state.published ? `<p class="hint">Marcado como publicado el ${fmtDate(state.publishedAt)}.</p>` : !canPublish ? `<p class="hint">Aprueba el borrador en la pestaña «Descripción» antes de marcarlo como publicado.</p>` : ""}
+              <div class="field" style="margin-top:8px; margin-bottom:0;">
+                <label>Enlace a tu anuncio publicado <span class="hint">(pégalo para poder confirmarlo con un clic)</span></label>
+                <input type="text" data-action="save-listing-url" data-id="${item.id}" data-platform="${meta.key}" value="${esc(state.listingUrl || "")}" placeholder="https://…" />
+              </div>
+              ${state.listingUrl ? `<a href="${esc(state.listingUrl)}" target="_blank" rel="noopener" class="btn-outline small" style="margin-top:8px;">🔗 Ver anuncio publicado</a>` : ""}
+            `}
           ` : ""}
         </div>
       </div>`;
@@ -612,7 +619,7 @@ function renderTabPlataformas(item) {
 
 function renderEbayPublishArea(item, state, canPublish) {
   if (state.published && state.ebayItemId) {
-    return `<p class="hint">✅ Publicado de verdad en eBay (artículo <a href="${esc(state.ebayUrl)}" target="_blank" rel="noopener">${esc(state.ebayItemId)}</a>).</p>`;
+    return `<p class="hint">✅ Publicado de verdad en eBay (artículo <a href="${esc(state.listingUrl)}" target="_blank" rel="noopener">${esc(state.ebayItemId)}</a>). <a href="${esc(state.listingUrl)}" target="_blank" rel="noopener" class="btn-outline small" style="margin-left:6px;">🔗 Ver anuncio publicado</a></p>`;
   }
   if (!canPublish) {
     return `<p class="hint">Aprueba el borrador en la pestaña «Descripción» antes de publicar.</p>`;
@@ -901,10 +908,9 @@ function renderPlataformasGlobal() {
           .map((item) => {
             const state = item.platforms[meta.key];
             const label = item.title || item.type || "Sin título";
-            const linkHtml =
-              meta.key === "ebay" && state.ebayUrl
-                ? `<a href="${esc(state.ebayUrl)}" target="_blank" rel="noopener" class="btn-outline small">Ver en eBay ↗</a>`
-                : `<a href="${meta.url}" target="_blank" rel="noopener" class="btn-outline small">Abrir ${meta.name} ↗</a>`;
+            const linkHtml = state.listingUrl
+              ? `<a href="${esc(state.listingUrl)}" target="_blank" rel="noopener" class="btn-outline small">🔗 Ver anuncio</a>`
+              : `<a href="${meta.url}" target="_blank" rel="noopener" class="btn-outline small">Abrir ${meta.name} ↗</a>`;
             return `
         <div class="platform-summary-row">
           <div>
@@ -1168,7 +1174,7 @@ document.addEventListener("click", async (e) => {
       });
       const platforms = {
         ...item.platforms,
-        ebay: { ...item.platforms.ebay, published: true, publishedAt: new Date().toISOString(), ebayItemId: result.itemId, ebayUrl: result.viewUrl },
+        ebay: { ...item.platforms.ebay, published: true, publishedAt: new Date().toISOString(), ebayItemId: result.itemId, listingUrl: result.viewUrl },
       };
       Store.updateItem(item.id, { platforms });
       toast("🚀 Publicado en eBay de verdad ✔");
@@ -1381,6 +1387,15 @@ function saveDatosTab(id) {
 
 // radio chip styling (delegated change)
 document.addEventListener("change", async (e) => {
+  if (e.target.dataset.action === "save-listing-url") {
+    const item = Store.getItem(e.target.dataset.id);
+    const key = e.target.dataset.platform;
+    const platforms = { ...item.platforms, [key]: { ...item.platforms[key], listingUrl: e.target.value.trim() } };
+    Store.updateItem(item.id, { platforms });
+    toast("Enlace guardado");
+    return;
+  }
+
   const chipInput = e.target.closest('[data-radio-chip] input, input[name="datos-condition"]');
   if (chipInput) {
     const groupName = chipInput.name;
