@@ -222,32 +222,6 @@ async function handlePhoto(env, id) {
   });
 }
 
-async function getSellerProfiles(env, accessToken) {
-  const requestXml = `<?xml version="1.0" encoding="utf-8"?>
-<GetUserPreferencesRequest xmlns="urn:ebay:apis:eBLBaseComponents">
-  <ShowSellerProfilePreferences>true</ShowSellerProfilePreferences>
-</GetUserPreferencesRequest>`;
-  const resp = await fetch(EBAY_TRADING_API_URL, {
-    method: "POST",
-    headers: tradingApiHeaders(env, "GetUserPreferences", accessToken),
-    body: requestXml,
-  });
-  const xml = await resp.text();
-  if (!resp.ok || xml.includes("<Ack>Failure</Ack>")) {
-    throw new Error("No se pudieron obtener las políticas de negocio de eBay: " + xml.slice(0, 1500));
-  }
-  const profiles = { payment: null, shipping: null, return: null };
-  const blocks = xml.split("<SupportedSellerProfile>").slice(1);
-  for (const block of blocks) {
-    const type = textBetween(block, "ProfileType");
-    const id = textBetween(block, "ProfileID");
-    if (type.includes("PAYMENT") && !profiles.payment) profiles.payment = id;
-    if (type.includes("SHIPPING") && !profiles.shipping) profiles.shipping = id;
-    if (type.includes("RETURN") && !profiles.return) profiles.return = id;
-  }
-  return profiles;
-}
-
 // GetSuggestedCategories (Trading API) fue retirada por eBay (HTTP 410 Gone).
 // La sustituye la Commerce Taxonomy API (REST), que usa un token de aplicación
 // (client_credentials), no el token de usuario que usamos para el resto de llamadas.
@@ -369,22 +343,8 @@ async function handleCreateListing(env, request) {
     );
   }
 
-  let profiles;
-  try {
-    profiles = await getSellerProfiles(env, accessToken);
-  } catch (err) {
-    return json({ error: err.message }, env, 500);
-  }
-  if (!profiles.payment || !profiles.shipping || !profiles.return) {
-    return json(
-      {
-        error:
-          "Tu cuenta de eBay no tiene políticas de negocio (pago/envío/devolución) configuradas. Ve a eBay > Configuración de la cuenta > Políticas de negocio y créalas antes de publicar por API.",
-      },
-      env,
-      400
-    );
-  }
+  const shippingCost = Number(body.shippingCost ?? 3.95);
+  const shippingService = body.shippingService || "ES_CorreosPaq72";
 
   const picturesXml = pictureUrls.map((u) => `<PictureURL>${escapeXml(u)}</PictureURL>`).join("");
 
@@ -417,11 +377,17 @@ async function handleCreateListing(env, request) {
     <ListingType>FixedPriceItem</ListingType>
     <Quantity>${Number(quantity) || 1}</Quantity>
     <PictureDetails>${picturesXml}</PictureDetails>
-    <SellerProfiles>
-      <SellerPaymentProfile><PaymentProfileID>${escapeXml(profiles.payment)}</PaymentProfileID></SellerPaymentProfile>
-      <SellerReturnProfile><ReturnProfileID>${escapeXml(profiles.return)}</ReturnProfileID></SellerReturnProfile>
-      <SellerShippingProfile><ShippingProfileID>${escapeXml(profiles.shipping)}</ShippingProfileID></SellerShippingProfile>
-    </SellerProfiles>${bestOfferXml}
+    <ShippingDetails>
+      <ShippingType>Flat</ShippingType>
+      <ShippingServiceOptions>
+        <ShippingServicePriority>1</ShippingServicePriority>
+        <ShippingService>${escapeXml(shippingService)}</ShippingService>
+        <ShippingServiceCost currencyID="EUR">${shippingCost.toFixed(2)}</ShippingServiceCost>
+      </ShippingServiceOptions>
+    </ShippingDetails>
+    <ReturnPolicy>
+      <ReturnsAcceptedOption>ReturnsNotAccepted</ReturnsAcceptedOption>
+    </ReturnPolicy>${bestOfferXml}
   </Item>
 </AddFixedPriceItemRequest>`;
 
