@@ -200,11 +200,11 @@ function renderInicio() {
     </div>
 
     <div class="dash-stats">
-      <div class="dash-stat"><div class="label">Artículos activos</div><div class="value">${activeItems.length}</div></div>
-      <div class="dash-stat"><div class="label">Valor en catálogo</div><div class="value">${fmtEuro(totalValue)}</div></div>
-      <div class="dash-stat"><div class="label">Vendidos</div><div class="value">${soldCount}</div></div>
-      <div class="dash-stat"><div class="label">Ofertas pendientes</div><div class="value">${pendingOffers}</div><div class="sub">por confirmar</div></div>
-      <div class="dash-stat"><div class="label">Conversaciones sin responder</div><div class="value">${pendingConversations}</div></div>
+      <div class="dash-stat"><div class="dash-stat-icon">${icon("grid")}</div><div><div class="label">Artículos activos</div><div class="value">${activeItems.length}</div></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon">${icon("tag")}</div><div><div class="label">Valor en catálogo</div><div class="value">${fmtEuro(totalValue)}</div></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon">${icon("check")}</div><div><div class="label">Vendidos</div><div class="value">${soldCount}</div></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon">${icon("message")}</div><div><div class="label">Ofertas pendientes</div><div class="value">${pendingOffers}</div><div class="sub">por confirmar</div></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon">${icon("send")}</div><div><div class="label">Conversaciones sin responder</div><div class="value">${pendingConversations}</div></div></div>
     </div>
 
     <div class="dash-section">
@@ -362,13 +362,13 @@ function buildCatalogCards(items) {
       return `
       <a class="card item-card" href="#/articulo/${item.id}">
         <div class="item-photo">
-          ${photo ? `<img src="${photo}" alt="">` : `<div class="no-photo">Sin foto</div>`}
+          ${photo ? `<img src="${photo}" alt="">` : `<div class="no-photo">${icon("scooter")}</div>`}
+          <span class="item-price-pill">${fmtEuro(item.price)}</span>
           ${item.photos.length > 1 ? `<span class="item-photo-count">${item.photos.length} fotos</span>` : ""}
         </div>
         <div class="item-body">
           <div class="item-title">${esc(label)}</div>
           <div class="item-meta">
-            <span class="item-price">${fmtEuro(item.price)}</span>
             <span>${item.sold ? "Vendido" : `Stock: ${item.stock}`}</span>
           </div>
           <div class="item-tags">
