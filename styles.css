@@ -418,7 +418,7 @@ table.simple-table select { font-size: 12.5px; padding: 6px 8px; }
 .dash-stat {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 16px 18px; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-  display: flex; align-items: flex-start; gap: 13px;
+  display: flex; align-items: flex-start; gap: 13px; cursor: pointer;
 }
 .dash-stat:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); border-color: transparent; }
 .dash-stat-icon {
