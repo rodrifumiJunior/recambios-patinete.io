@@ -10,10 +10,15 @@ import { initPWA, isIOS, isInstalled, canPromptInstall, promptInstall } from "./
 import { initConnectivity } from "./connectivity.js";
 import { initAuth, signOut } from "./auth.js";
 import { getConnectUrl, getEbayStatus, getEbayMessages, sendEbayReply, uploadEbayPhoto, createEbayListing } from "./ebay.js";
+import { initSync } from "./sync.js";
 
 initPWA();
 initConnectivity(toast);
 initAuth();
+initSync(() => {
+  toast("Catálogo actualizado desde otro dispositivo");
+  render();
+});
 document.addEventListener("pwa-install-available", () => {
   if ((parseHash().parts[0] || "inicio") === "descargar") render();
 });

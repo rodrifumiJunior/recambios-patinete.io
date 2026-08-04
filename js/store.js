@@ -24,6 +24,7 @@ function defaultState() {
  *  conexiones) para que los datos ya guardados en localStorage no rompan la app. */
 function migrateState(state) {
   if (!state.connections) state.connections = {};
+  if (!state.updatedAt) state.updatedAt = 0;
   for (const item of state.items) {
     if (!Array.isArray(item.messages)) item.messages = [];
     if (!item.orderStage) item.orderStage = item.sold ? "vendido" : "disponible";
@@ -183,6 +184,8 @@ function seedExampleItems() {
   return items;
 }
 
+const listeners = [];
+
 export const Store = {
   PLATFORM_KEYS,
   uid,
@@ -192,7 +195,21 @@ export const Store = {
 
   state: loadState(),
 
-  persist() {
+  persist(silent = false) {
+    this.state.updatedAt = Date.now();
+    saveState(this.state);
+    if (!silent) listeners.forEach((fn) => fn(this.state));
+  },
+
+  /** Se llama cada vez que hay un cambio local guardado (para sincronizar con la nube). */
+  subscribe(fn) {
+    listeners.push(fn);
+  },
+
+  /** Sustituye todo el estado (usado al traer una copia más reciente desde la nube).
+   *  No dispara los listeners, para no volver a subir inmediatamente lo que acabamos de bajar. */
+  replaceState(newState) {
+    this.state = newState;
     saveState(this.state);
   },
 

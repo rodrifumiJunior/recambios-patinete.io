@@ -29,10 +29,15 @@
 //   GET  /photo/:id      -> sirve esa foto (la usa eBay para mostrarla en el anuncio)
 //   POST /api/listings   -> crea un anuncio real en eBay (AddFixedPriceItem)
 //   GET  /api/suggest-category?q=titulo -> solo lectura, para depurar la sugerencia de categoría
+//   POST /api/sync/save  -> guarda el catálogo completo del usuario (requiere Authorization: Bearer <Google ID token>)
+//   GET  /api/sync/load  -> recupera el catálogo guardado del usuario (mismo header)
 
 const EBAY_OAUTH_AUTHORIZE_URL = "https://auth.ebay.com/oauth2/authorize";
 const EBAY_OAUTH_TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";
 const EBAY_TRADING_API_URL = "https://api.ebay.com/ws/api.dll";
+// Client ID público de "Iniciar sesión con Google" de la app (no es secreto, solo identifica la app ante Google).
+const GOOGLE_CLIENT_ID = "731313791471-s5h00hvciketaiemlov9o8lcivjbbs4m.apps.googleusercontent.com";
+const GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
 const EBAY_SITE_ID = "186"; // eBay España. Si no encaja, verificar en la lista oficial de SiteIDs de la Trading API.
 const OAUTH_SCOPES = [
   "https://api.ebay.com/oauth/api_scope",
@@ -45,7 +50,7 @@ function corsHeaders(env) {
   return {
     "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
 }
 
@@ -146,6 +151,74 @@ async function sha256Hex(input) {
   return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// --- Verificación del ID token de Google (firma RS256 contra las claves públicas de Google) ---
+
+function base64UrlToString(str) {
+  str = str.replace(/-/g, "+").replace(/_/g, "/");
+  while (str.length % 4) str += "=";
+  return atob(str);
+}
+
+function base64UrlToBytes(str) {
+  const binStr = base64UrlToString(str);
+  const bytes = new Uint8Array(binStr.length);
+  for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+  return bytes;
+}
+
+let cachedJwks = null;
+let cachedJwksAt = 0;
+
+async function getGoogleJwks() {
+  if (cachedJwks && Date.now() - cachedJwksAt < 3600000) return cachedJwks;
+  const resp = await fetch(GOOGLE_JWKS_URL);
+  const data = await resp.json();
+  cachedJwks = data.keys;
+  cachedJwksAt = Date.now();
+  return cachedJwks;
+}
+
+/** Verifica firma, emisor, audiencia y caducidad. Lanza si algo no cuadra. Devuelve el payload (sub, email, name, picture...). */
+async function verifyGoogleIdToken(idToken) {
+  const parts = idToken.split(".");
+  if (parts.length !== 3) throw new Error("Token con formato inválido");
+  const [headerB64, payloadB64, signatureB64] = parts;
+
+  const header = JSON.parse(base64UrlToString(headerB64));
+  const payload = JSON.parse(base64UrlToString(payloadB64));
+
+  const jwks = await getGoogleJwks();
+  const jwk = jwks.find((k) => k.kid === header.kid);
+  if (!jwk) throw new Error("No se encontró la clave pública de Google para este token");
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "jwk",
+    jwk,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["verify"]
+  );
+  const data = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
+  const signature = base64UrlToBytes(signatureB64);
+  const valid = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", cryptoKey, signature, data);
+  if (!valid) throw new Error("Firma del token no válida");
+
+  if (payload.aud !== GOOGLE_CLIENT_ID) throw new Error("El token no fue emitido para esta aplicación");
+  if (payload.iss !== "accounts.google.com" && payload.iss !== "https://accounts.google.com") {
+    throw new Error("Emisor del token no reconocido");
+  }
+  if (!payload.exp || payload.exp * 1000 < Date.now()) throw new Error("El token ha caducado, vuelve a iniciar sesión");
+
+  return payload;
+}
+
+async function requireGoogleUser(request) {
+  const auth = request.headers.get("Authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) throw new Error("Falta la sesión de Google (Authorization header)");
+  return verifyGoogleIdToken(token);
+}
+
 function escapeXml(str) {
   return String(str || "").replace(/[<>&'"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[c]));
 }
@@ -153,6 +226,37 @@ function escapeXml(str) {
 function textBetween(xml, tag) {
   const m = xml.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
   return m ? m[1] : "";
+}
+
+// --- Sincronización de catálogo entre dispositivos (misma cuenta de Google) ---
+
+async function handleSyncSave(env, request) {
+  let user;
+  try {
+    user = await requireGoogleUser(request);
+  } catch (err) {
+    return json({ error: err.message }, env, 401);
+  }
+  const body = await request.text();
+  if (body.length > 24 * 1024 * 1024) {
+    return json({ error: "El catálogo pesa demasiado para guardarlo en la nube (límite ~25 MB). Reduce el número de fotos o su tamaño." }, env, 413);
+  }
+  const record = { updatedAt: Date.now(), data: body };
+  await env.EBAY_TOKENS.put(`syncdata:${user.sub}`, JSON.stringify(record));
+  return json({ saved: true, updatedAt: record.updatedAt }, env);
+}
+
+async function handleSyncLoad(env, request) {
+  let user;
+  try {
+    user = await requireGoogleUser(request);
+  } catch (err) {
+    return json({ error: err.message }, env, 401);
+  }
+  const raw = await env.EBAY_TOKENS.get(`syncdata:${user.sub}`);
+  if (!raw) return json({ found: false }, env);
+  const record = JSON.parse(raw);
+  return json({ found: true, updatedAt: record.updatedAt, data: record.data }, env);
 }
 
 async function handleGetMessages(env) {
@@ -496,6 +600,22 @@ export default {
     if (url.pathname === "/api/status") {
       const tokens = await getStoredTokens(env);
       return json({ connected: !!tokens }, env);
+    }
+
+    if (url.pathname === "/api/sync/save" && request.method === "POST") {
+      try {
+        return await handleSyncSave(env, request);
+      } catch (err) {
+        return json({ error: err.message }, env, 500);
+      }
+    }
+
+    if (url.pathname === "/api/sync/load" && request.method === "GET") {
+      try {
+        return await handleSyncLoad(env, request);
+      } catch (err) {
+        return json({ error: err.message }, env, 500);
+      }
     }
 
     if (url.pathname === "/api/messages" && request.method === "GET") {
