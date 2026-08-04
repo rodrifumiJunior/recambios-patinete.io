@@ -19,6 +19,8 @@
 <body>
 <script>
   if (localStorage.getItem("rc_patinete_auth")) { document.documentElement.classList.add("auth-ok"); }
+  var storedTheme = localStorage.getItem("rc_patinete_theme");
+  if (storedTheme === "light" || storedTheme === "dark") { document.documentElement.setAttribute("data-theme", storedTheme); }
 </script>
 
 <div class="auth-gate">
@@ -100,6 +102,7 @@
         <span></span>
         <button data-action="sign-out" class="icon-btn" title="Cerrar sesión"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v7"/><path d="M7 6.5a7 7 0 1 0 10 0"/></svg></button>
       </div>
+      <button id="theme-toggle-btn" class="btn-ghost small"></button>
       <button id="btn-seed" class="btn-ghost small">Cargar ejemplo</button>
       <button id="btn-reset" class="btn-ghost small danger">Vaciar datos</button>
       <p class="fine-print">Se sincroniza entre tus dispositivos con tu cuenta de Google. La publicación en cada plataforma la haces tú, manualmente.</p>

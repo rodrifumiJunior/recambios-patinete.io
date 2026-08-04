@@ -12,9 +12,11 @@ import { initAuth, signOut } from "./auth.js";
 import { getConnectUrl, getEbayStatus, getEbayMessages, sendEbayReply, uploadEbayPhoto, createEbayListing } from "./ebay.js";
 import { initSync } from "./sync.js";
 import { icon } from "./icons.js";
+import { initTheme } from "./theme.js";
 
 initPWA();
 initConnectivity(toast);
+initTheme();
 initAuth();
 initSync(() => {
   toast("Catálogo actualizado desde otro dispositivo");
