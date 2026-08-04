@@ -629,7 +629,7 @@ function renderEbayPublishArea(item, state, canPublish) {
   }
   return `
     <button class="btn btn-accent small" data-action="ebay-publish-listing" data-id="${item.id}">🚀 Publicar automáticamente en eBay</button>
-    <p class="hint" style="margin-top:6px;">Usa el precio (${fmtEuro(item.price)}), stock (${item.stock}) y precio mínimo orientativo${item.minPrice !== null ? ` (${fmtEuro(item.minPrice)})` : ""} ya definidos en «Datos y stock» para configurar Best Offer con auto-aceptar/auto-rechazar.</p>`;
+    <p class="hint" style="margin-top:6px;">Usa el precio (${fmtEuro(item.price)}), stock (${item.stock}) y precio mínimo orientativo${item.minPrice !== null ? ` (${fmtEuro(item.minPrice)})` : ""} ya definidos en «Datos y stock» para activar Best Offer: las ofertas por debajo del mínimo se auto-rechazan, el resto las revisas tú en la pestaña Ofertas.</p>`;
 }
 
 function renderTabOfertas(item) {
@@ -1189,7 +1189,6 @@ document.addEventListener("click", async (e) => {
         quantity: item.stock,
         conditionId: item.condition === "nuevo" ? 1000 : 3000,
         minOfferPrice: item.minPrice,
-        autoAcceptPrice: item.price,
         pictureUrls,
         categoryId: item.ebayCategoryId || undefined,
         location: ebayConn.city,
