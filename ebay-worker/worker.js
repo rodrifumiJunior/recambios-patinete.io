@@ -319,9 +319,12 @@ async function handleCreateListing(env, request) {
   if (!accessToken) return json({ error: "No hay una cuenta de eBay conectada todavía." }, env, 400);
 
   const body = await request.json();
-  const { title, description, price, quantity, conditionId, minOfferPrice, autoAcceptPrice, pictureUrls, categoryId: providedCategoryId } = body;
+  const { title, description, price, quantity, conditionId, minOfferPrice, autoAcceptPrice, pictureUrls, categoryId: providedCategoryId, location, postalCode } = body;
   if (!title || !description || !price || !pictureUrls?.length) {
     return json({ error: "Faltan datos obligatorios: título, descripción, precio o fotos." }, env, 400);
+  }
+  if (!location || !postalCode) {
+    return json({ error: "Falta la ciudad o el código postal del vendedor." }, env, 400);
   }
 
   let categoryId = providedCategoryId;
@@ -372,6 +375,8 @@ async function handleCreateListing(env, request) {
     <ConditionID>${escapeXml(String(conditionId || 3000))}</ConditionID>
     <Country>ES</Country>
     <Currency>EUR</Currency>
+    <Location>${escapeXml(location)}</Location>
+    <PostalCode>${escapeXml(postalCode)}</PostalCode>
     <DispatchTimeMax>3</DispatchTimeMax>
     <ListingDuration>GTC</ListingDuration>
     <ListingType>FixedPriceItem</ListingType>

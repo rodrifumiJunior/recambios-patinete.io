@@ -995,6 +995,14 @@ function renderConexiones() {
           <label>Enlace a tu perfil/tienda</label>
           <input type="text" data-conn-field="profileUrl" data-platform="ebay" value="${esc(ebayConn.profileUrl || "")}" placeholder="https://…" />
         </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Ciudad <span class="hint">(para tus anuncios de eBay)</span></label>
+          <input type="text" data-conn-field="city" data-platform="ebay" value="${esc(ebayConn.city || "")}" placeholder="Ej. Madrid" />
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Código postal</label>
+          <input type="text" data-conn-field="postalCode" data-platform="ebay" value="${esc(ebayConn.postalCode || "")}" placeholder="Ej. 28001" />
+        </div>
       </div>
       <div id="ebay-messages-area" style="margin-top:16px;"></div>
     </div>
@@ -1167,6 +1175,13 @@ document.addEventListener("click", async (e) => {
         pictureUrls.push(await uploadEbayPhoto(photo));
       }
       el.textContent = "Publicando en eBay…";
+      const ebayConn = Store.getConnections().ebay || {};
+      if (!ebayConn.city || !ebayConn.postalCode) {
+        toast("Añade tu ciudad y código postal en Conexiones > eBay antes de publicar", 5000);
+        el.disabled = false;
+        el.textContent = originalLabel;
+        return;
+      }
       const result = await createEbayListing({
         title: item.title,
         description: item.description,
@@ -1177,6 +1192,8 @@ document.addEventListener("click", async (e) => {
         autoAcceptPrice: item.price,
         pictureUrls,
         categoryId: item.ebayCategoryId || undefined,
+        location: ebayConn.city,
+        postalCode: ebayConn.postalCode,
       });
       const platforms = {
         ...item.platforms,
@@ -1538,7 +1555,7 @@ document.addEventListener("submit", (e) => {
 
   if (formEl.dataset.form === "save-connections") {
     e.preventDefault();
-    formEl.querySelectorAll("[data-conn-field]").forEach((input) => {
+    document.querySelectorAll("[data-conn-field]").forEach((input) => {
       Store.updateConnection(input.dataset.platform, { [input.dataset.connField]: input.value.trim() });
     });
     toast("Conexiones guardadas");
