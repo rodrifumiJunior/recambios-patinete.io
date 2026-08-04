@@ -5,7 +5,7 @@
 // una mejora, no un requisito para poder trabajar.
 
 import { Store } from "./store.js";
-import { getIdToken } from "./auth.js";
+import { getSessionToken } from "./auth.js";
 
 const WORKER_URL = "https://ebay-mensajeria.rodricarf2.workers.dev";
 const PUSH_DEBOUNCE_MS = 2500;
@@ -14,7 +14,7 @@ let pushTimer = null;
 let lastPushedAt = 0;
 
 async function pullFromCloud() {
-  const token = getIdToken();
+  const token = getSessionToken();
   if (!token) return null;
   const res = await fetch(`${WORKER_URL}/api/sync/load`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -26,7 +26,7 @@ async function pullFromCloud() {
 }
 
 async function pushToCloud() {
-  const token = getIdToken();
+  const token = getSessionToken();
   if (!token) return;
   const res = await fetch(`${WORKER_URL}/api/sync/save`, {
     method: "POST",
@@ -37,7 +37,7 @@ async function pushToCloud() {
 }
 
 function schedulePush() {
-  if (!navigator.onLine || !getIdToken()) return;
+  if (!navigator.onLine || !getSessionToken()) return;
   clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
     pushToCloud().catch((err) => console.warn("No se pudo sincronizar con la nube", err));

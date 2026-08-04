@@ -29,7 +29,8 @@
 //   GET  /photo/:id      -> sirve esa foto (la usa eBay para mostrarla en el anuncio)
 //   POST /api/listings   -> crea un anuncio real en eBay (AddFixedPriceItem)
 //   GET  /api/suggest-category?q=titulo -> solo lectura, para depurar la sugerencia de categoría
-//   POST /api/sync/save  -> guarda el catálogo completo del usuario (requiere Authorization: Bearer <Google ID token>)
+//   POST /api/auth/session -> canjea un ID token de Google (verificado) por una sesión propia duradera
+//   POST /api/sync/save  -> guarda el catálogo completo del usuario (requiere Authorization: Bearer <sesión propia>)
 //   GET  /api/sync/load  -> recupera el catálogo guardado del usuario (mismo header)
 
 const EBAY_OAUTH_AUTHORIZE_URL = "https://auth.ebay.com/oauth2/authorize";
@@ -212,11 +213,39 @@ async function verifyGoogleIdToken(idToken) {
   return payload;
 }
 
-async function requireGoogleUser(request) {
+// --- Sesión propia (evita depender de que Google reautentique en silencio,
+// algo poco fiable en móvil: la app canjea el ID token de Google por esta
+// sesión UNA vez, al iniciar sesión, y la reutiliza indefinidamente) ---
+
+async function createSession(env, user) {
+  const sessionToken = crypto.randomUUID();
+  await env.EBAY_TOKENS.put(
+    `session:${sessionToken}`,
+    JSON.stringify({ sub: user.sub, email: user.email, name: user.name, picture: user.picture, createdAt: Date.now() })
+  );
+  return sessionToken;
+}
+
+async function requireSession(env, request) {
   const auth = request.headers.get("Authorization") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
-  if (!token) throw new Error("Falta la sesión de Google (Authorization header)");
-  return verifyGoogleIdToken(token);
+  if (!token) throw new Error("Falta la sesión (Authorization header)");
+  const raw = await env.EBAY_TOKENS.get(`session:${token}`);
+  if (!raw) throw new Error("Sesión no válida, vuelve a iniciar sesión con Google");
+  return JSON.parse(raw);
+}
+
+async function handleAuthSession(env, request) {
+  const { idToken } = await request.json();
+  if (!idToken) return json({ error: "Falta idToken" }, env, 400);
+  let user;
+  try {
+    user = await verifyGoogleIdToken(idToken);
+  } catch (err) {
+    return json({ error: err.message }, env, 401);
+  }
+  const sessionToken = await createSession(env, user);
+  return json({ sessionToken }, env);
 }
 
 function escapeXml(str) {
@@ -233,7 +262,7 @@ function textBetween(xml, tag) {
 async function handleSyncSave(env, request) {
   let user;
   try {
-    user = await requireGoogleUser(request);
+    user = await requireSession(env, request);
   } catch (err) {
     return json({ error: err.message }, env, 401);
   }
@@ -249,7 +278,7 @@ async function handleSyncSave(env, request) {
 async function handleSyncLoad(env, request) {
   let user;
   try {
-    user = await requireGoogleUser(request);
+    user = await requireSession(env, request);
   } catch (err) {
     return json({ error: err.message }, env, 401);
   }
@@ -600,6 +629,14 @@ export default {
     if (url.pathname === "/api/status") {
       const tokens = await getStoredTokens(env);
       return json({ connected: !!tokens }, env);
+    }
+
+    if (url.pathname === "/api/auth/session" && request.method === "POST") {
+      try {
+        return await handleAuthSession(env, request);
+      } catch (err) {
+        return json({ error: err.message }, env, 500);
+      }
     }
 
     if (url.pathname === "/api/sync/save" && request.method === "POST") {

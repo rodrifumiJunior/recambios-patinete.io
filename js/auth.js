@@ -1,14 +1,15 @@
-// Puerta de acceso con "Iniciar sesión con Google", y origen del token que usa
-// js/sync.js para sincronizar tu catálogo entre dispositivos. El backend SÍ
-// verifica la firma de este token (contra las claves públicas de Google) antes
-// de guardar o devolver tus datos, así que la sincronización es segura aunque
-// el gate de entrada en sí sea solo una comodidad de uso, no una barrera.
+// Puerta de acceso con "Iniciar sesión con Google". Tras el primer inicio de
+// sesión, la app canjea el token de Google por una sesión propia (guardada en
+// este dispositivo, en localStorage) que no caduca cada hora ni depende de que
+// Google pueda reautenticar en segundo plano — así la sincronización entre
+// dispositivos sigue funcionando aunque el navegador bloquee los inicios de
+// sesión silenciosos de Google, algo habitual sobre todo en móvil.
 
 const CLIENT_ID = "731313791471-s5h00hvciketaiemlov9o8lcivjbbs4m.apps.googleusercontent.com";
+const WORKER_URL = "https://ebay-mensajeria.rodricarf2.workers.dev";
 
 const AUTH_KEY = "rc_patinete_auth";
-
-let currentIdToken = null;
+const SESSION_KEY = "rc_patinete_session";
 
 function decodeJwt(token) {
   const payload = token.split(".")[1];
@@ -46,17 +47,30 @@ function renderProfileChip() {
   chip.querySelector("span").textContent = profile.name || profile.email || "";
 }
 
-export function getIdToken() {
-  return currentIdToken;
+/** Token de sesión propio (no el de Google): se guarda en localStorage y lo usa
+ *  js/sync.js para autenticar las llamadas de sincronización con el Worker. */
+export function getSessionToken() {
+  return localStorage.getItem(SESSION_KEY);
 }
 
-function handleCredentialResponse(response) {
+async function exchangeForSession(googleIdToken) {
+  const res = await fetch(`${WORKER_URL}/api/auth/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken: googleIdToken }),
+  });
+  if (!res.ok) throw new Error("No se pudo crear la sesión (" + res.status + ")");
+  const data = await res.json();
+  localStorage.setItem(SESSION_KEY, data.sessionToken);
+}
+
+async function handleCredentialResponse(response) {
   try {
-    currentIdToken = response.credential;
     const profile = decodeJwt(response.credential);
     localStorage.setItem(AUTH_KEY, JSON.stringify({ name: profile.name, email: profile.email, picture: profile.picture }));
     hideGate();
     renderProfileChip();
+    await exchangeForSession(response.credential);
     document.dispatchEvent(new CustomEvent("google-token-ready"));
   } catch (err) {
     console.error("No se pudo procesar el inicio de sesión con Google", err);
@@ -76,21 +90,9 @@ function renderGoogleButton(attemptsLeft = 25) {
   }
 }
 
-/** Pide a Google un token fresco sin mostrar UI, aprovechando que el navegador
- *  ya tiene sesión iniciada en Google — necesario porque el ID token caduca
- *  (~1h) y lo usamos para autenticar la sincronización en la nube. */
-function trySilentTokenRefresh(attemptsLeft = 25) {
-  if (!window.google?.accounts?.id) {
-    if (attemptsLeft > 0) setTimeout(() => trySilentTokenRefresh(attemptsLeft - 1), 200);
-    return;
-  }
-  window.google.accounts.id.initialize({ client_id: CLIENT_ID, callback: handleCredentialResponse, auto_select: true });
-  window.google.accounts.id.prompt();
-}
-
 export function signOut() {
   localStorage.removeItem(AUTH_KEY);
-  currentIdToken = null;
+  localStorage.removeItem(SESSION_KEY);
   if (window.google?.accounts?.id) {
     window.google.accounts.id.disableAutoSelect();
   }
@@ -102,11 +104,14 @@ export function signOut() {
 export function initAuth() {
   renderProfileChip();
 
-  if (getProfile()) {
+  if (getProfile() && getSessionToken()) {
     hideGate();
-    trySilentTokenRefresh();
+    document.dispatchEvent(new CustomEvent("google-token-ready"));
     return;
   }
+  // Si había sesión de una versión anterior de la app pero no hay sesión
+  // propia guardada (o nunca se guardó), pedimos un inicio de sesión más
+  // para poder crearla — solo hace falta una vez.
   showGate();
   renderGoogleButton();
 }
