@@ -1116,12 +1116,6 @@ function renderDescargar() {
   let installBoxHtml;
   if (installed) {
     installBoxHtml = `<div class="disclaimer-banner">${icon("check")} Ya estás usando la app instalada en este dispositivo.</div>`;
-  } else if (canInstallNow) {
-    installBoxHtml = `
-      <div class="card card-pad" style="text-align:center;">
-        <button class="btn btn-accent" id="install-now-btn" style="font-size:15px; padding:12px 22px;">${icon("download")} Descargar / instalar en ${deviceWord}</button>
-        <p class="hint" style="margin-top:10px;">Se añadirá un icono en tu ${iconWord} para abrirla como una app aparte, sin conexión.</p>
-      </div>`;
   } else if (onIOS) {
     installBoxHtml = `
       <div class="card card-pad">
@@ -1129,7 +1123,11 @@ function renderDescargar() {
         <p style="margin:0; font-size:13px; color:var(--text-muted);">Toca el icono de Compartir 􀈂 en la barra inferior y luego "Añadir a pantalla de inicio".</p>
       </div>`;
   } else {
-    installBoxHtml = `<div class="disclaimer-banner">Ábrela con Chrome o Edge (en el móvil o el ordenador) para poder descargarla/instalarla directamente desde aquí — este navegador no lo permite.</div>`;
+    installBoxHtml = `
+      <div class="card card-pad" style="text-align:center;">
+        <button class="btn btn-accent" id="install-now-btn" style="font-size:15px; padding:12px 22px;">${icon("download")} Descargar / instalar en ${deviceWord}</button>
+        <p class="hint" style="margin-top:10px;">Se añadirá un icono en tu ${iconWord} para abrirla como una app aparte, sin conexión.</p>
+      </div>`;
   }
 
   main.innerHTML = `
@@ -1156,9 +1154,18 @@ function renderDescargar() {
   const installBtn = document.getElementById("install-now-btn");
   if (installBtn) {
     installBtn.addEventListener("click", async () => {
-      await promptInstall();
-      toast("Si aceptaste, ya tienes el icono en tu pantalla de inicio");
-      render();
+      if (canPromptInstall()) {
+        await promptInstall();
+        toast("Si aceptaste, ya tienes el icono en tu dispositivo");
+        render();
+        return;
+      }
+      toast(
+        mobile
+          ? "Este navegador no ofrece instalación en un toque: abre el menú ⋮ y elige \"Instalar aplicación\" o \"Añadir a pantalla de inicio\""
+          : "Este navegador no ofrece instalación en un clic: abre el menú ⋮ (arriba a la derecha) y elige \"Instalar Recambios Patinete…\"",
+        5000
+      );
     });
   }
 }
