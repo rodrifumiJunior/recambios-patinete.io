@@ -11,6 +11,7 @@ import { initConnectivity } from "./connectivity.js";
 import { initAuth, signOut } from "./auth.js";
 import { getConnectUrl, getEbayStatus, getEbayMessages, sendEbayReply, uploadEbayPhoto, createEbayListing } from "./ebay.js";
 import { initSync } from "./sync.js";
+import { icon } from "./icons.js";
 
 initPWA();
 initConnectivity(toast);
@@ -164,10 +165,10 @@ function renderInicio() {
       </div>
       <div class="card">
         <div class="empty-state">
-          <div class="emoji">🏠</div>
+          <div class="emoji">${icon("home")}</div>
           <p><strong>Todavía no hay datos que mostrar</strong></p>
           <div style="margin-top:16px; display:flex; gap:10px; justify-content:center;">
-            <a href="#/nuevo" class="btn">➕ Nuevo artículo</a>
+            <a href="#/nuevo" class="btn">${icon("plus")} Nuevo artículo</a>
             <button class="btn-outline" data-action="seed">Cargar ejemplo</button>
           </div>
         </div>
@@ -227,7 +228,7 @@ function renderInicio() {
 
     <div class="dash-section">
       <div class="dash-section-head">
-        <div><h2>📉 Necesitan un empujón</h2><p>Publicados hace tiempo sin ninguna oferta ni mensaje — sugerencia para promocionarlos.</p></div>
+        <div><h2>${icon("trend")} Necesitan un empujón</h2><p>Publicados hace tiempo sin ninguna oferta ni mensaje — sugerencia para promocionarlos.</p></div>
         <a href="#/mantenimiento" class="btn-outline small">Ver mantenimiento</a>
       </div>
       <div class="card card-pad">
@@ -286,7 +287,7 @@ function renderRankCard(d, kind) {
       <div class="rank-body">
         <a class="title" href="#/articulo/${item.id}">${esc(label)}</a>
         <div class="meta">${d.published ? `Publicado hace ${d.daysLive} días` : "Sin publicar"} · ${d.offers} oferta${d.offers === 1 ? "" : "s"} · ${d.buyerMessages} mensaje${d.buyerMessages === 1 ? "" : "s"}</div>
-        ${kind === "baja" ? `<div class="suggestion">💡 ${esc(suggestionForLowDemand(d))}</div>` : ""}
+        ${kind === "baja" ? `<div class="suggestion">${icon("bulb")} ${esc(suggestionForLowDemand(d))}</div>` : ""}
       </div>
       <a href="#/articulo/${item.id}" class="btn-outline small">Ver</a>
     </div>`;
@@ -303,11 +304,11 @@ function renderCatalogo() {
       </div>
       <div class="card">
         <div class="empty-state">
-          <div class="emoji">🛴</div>
+          <div class="emoji">${icon("scooter")}</div>
           <p><strong>Empieza subiendo tu primer recambio</strong></p>
           <p>Fotos, precio, stock y estado — la descripción la prepara la IA por ti, en borrador.</p>
           <div style="margin-top:16px; display:flex; gap:10px; justify-content:center;">
-            <a href="#/nuevo" class="btn">➕ Nuevo artículo</a>
+            <a href="#/nuevo" class="btn">${icon("plus")} Nuevo artículo</a>
             <button class="btn-outline" data-action="seed">Cargar ejemplo</button>
           </div>
         </div>
@@ -318,11 +319,11 @@ function renderCatalogo() {
   main.innerHTML = `
     <div class="view-header">
       <div><h1>Catálogo</h1><p>Fotos, precio y stock compartidos en todas las plataformas donde publiques.</p></div>
-      <a href="#/nuevo" class="btn">➕ Nuevo artículo</a>
+      <a href="#/nuevo" class="btn">${icon("plus")} Nuevo artículo</a>
     </div>
     <div class="catalog-toolbar">
       <div class="catalog-search-wrap">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon">${icon("search")}</span>
         <input type="text" id="catalog-search" placeholder="Buscar por título, tipo o marca…" value="${esc(catalogFilters.search)}" />
       </div>
       <select id="catalog-status-filter">
@@ -385,7 +386,7 @@ function updateCatalogGrid() {
   const filtered = Store.getItems().filter(itemMatchesFilters);
   grid.innerHTML = filtered.length
     ? buildCatalogCards(filtered)
-    : `<div class="empty-state" style="grid-column:1/-1;"><div class="emoji">🔍</div><p>Ningún artículo coincide con la búsqueda o el filtro.</p></div>`;
+    : `<div class="empty-state" style="grid-column:1/-1;"><div class="emoji">${icon("search")}</div><p>Ningún artículo coincide con la búsqueda o el filtro.</p></div>`;
   if (countEl) countEl.textContent = `${filtered.length} artículo${filtered.length === 1 ? "" : "s"}`;
 }
 
@@ -401,7 +402,7 @@ function renderNuevo() {
         <div class="section-title">Fotos</div>
         <div class="field">
           <div class="photo-drop" data-action="trigger-photo-input">
-            📷 Haz clic para elegir fotos (puedes seleccionar varias)
+            ${icon("camera")} Haz clic para elegir fotos (puedes seleccionar varias)
           </div>
           <input type="file" id="photo-input" accept="image/*" multiple hidden />
           <div class="photo-preview-row" id="photo-preview"></div>
@@ -453,7 +454,7 @@ function renderNuevo() {
           <input type="number" name="stock" min="1" step="1" value="1" required />
         </div>
 
-        <button type="submit" class="btn btn-accent">✨ Crear borrador con IA</button>
+        <button type="submit" class="btn btn-accent">${icon("sparkles")} Crear borrador con IA</button>
       </form>
     </div>`;
 
@@ -483,7 +484,7 @@ function renderPhotoPreview() {
       (src, i) => `
       <div class="photo-thumb">
         <img src="${src}" alt="" />
-        <button type="button" data-action="remove-draft-photo" data-index="${i}">✕</button>
+        <button type="button" data-action="remove-draft-photo" data-index="${i}">${icon("x")}</button>
       </div>`
     )
     .join("");
@@ -522,7 +523,7 @@ function renderArticulo(id, tab) {
             ${ORDER_STAGES.map((s) => `<option value="${s.key}" ${item.orderStage === s.key ? "selected" : ""}>${s.label}</option>`).join("")}
           </select>
         </label>
-        <button class="icon-btn" title="Eliminar artículo" data-action="delete-item" data-id="${item.id}">🗑️</button>
+        <button class="icon-btn" title="Eliminar artículo" data-action="delete-item" data-id="${item.id}">${icon("trash")}</button>
       </div>
     </div>
 
@@ -559,7 +560,7 @@ function renderArticulo(id, tab) {
 function renderTabDescripcion(item) {
   const hasBasics = item.type;
   return `
-    <div class="disclaimer-banner">💡 La IA solo prepara el borrador. No se publica nada hasta que apruebes el texto.</div>
+    <div class="disclaimer-banner">${icon("bulb")} La IA solo prepara el borrador. No se publica nada hasta que apruebes el texto.</div>
     <div class="field">
       <label>Título del anuncio</label>
       <input type="text" id="edit-title" value="${esc(item.title)}" />
@@ -569,11 +570,11 @@ function renderTabDescripcion(item) {
       <textarea id="edit-description" rows="7">${esc(item.description)}</textarea>
     </div>
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn-outline" data-action="regenerate-ai" data-id="${item.id}" ${hasBasics ? "" : "disabled"}>✨ Regenerar con IA</button>
-      <button class="btn-outline" data-action="save-draft" data-id="${item.id}">💾 Guardar cambios</button>
+      <button class="btn-outline" data-action="regenerate-ai" data-id="${item.id}" ${hasBasics ? "" : "disabled"}>${icon("sparkles")} Regenerar con IA</button>
+      <button class="btn-outline" data-action="save-draft" data-id="${item.id}">${icon("save")} Guardar cambios</button>
       ${item.status === "aprobado"
-        ? `<span class="badge badge-approved" style="align-self:center;">Aprobado ✓</span>`
-        : `<button class="btn btn-accent" data-action="approve-draft" data-id="${item.id}">✔ Aprobar borrador</button>`}
+        ? `<span class="badge badge-approved" style="align-self:center;">Aprobado ${icon("check")}</span>`
+        : `<button class="btn btn-accent" data-action="approve-draft" data-id="${item.id}">${icon("check")} Aprobar borrador</button>`}
     </div>
     ${!hasBasics ? `<p class="hint" style="margin-top:10px;">Añade el tipo de pieza en «Datos y stock» para poder generar/regenerar con IA.</p>` : ""}
     <p class="hint" style="margin-top:14px;">Categoría sugerida: <strong>${esc(suggestCategory(item.type))}</strong></p>
@@ -596,7 +597,7 @@ function renderTabPlataformas(item) {
           ${state.selected ? `
             <div class="copy-box" style="margin-top:8px;"><strong>${esc(adapted.title)}</strong>\n\n${esc(adapted.description)}</div>
             <div style="display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;">
-              <button class="btn-outline small" data-action="copy-platform-text" data-id="${item.id}" data-platform="${meta.key}">📋 Copiar texto</button>
+              <button class="btn-outline small" data-action="copy-platform-text" data-id="${item.id}" data-platform="${meta.key}">${icon("copy")} Copiar texto</button>
               <a class="btn-outline small" href="${meta.url}" target="_blank" rel="noopener">Abrir ${meta.name} ↗</a>
               ${meta.key !== "ebay" ? `
               <label class="checkbox-row" style="margin-left:auto;">
@@ -610,7 +611,7 @@ function renderTabPlataformas(item) {
                 <label>Enlace a tu anuncio publicado <span class="hint">(pégalo para poder confirmarlo con un clic)</span></label>
                 <input type="text" data-action="save-listing-url" data-id="${item.id}" data-platform="${meta.key}" value="${esc(state.listingUrl || "")}" placeholder="https://…" />
               </div>
-              ${state.listingUrl ? `<a href="${esc(state.listingUrl)}" target="_blank" rel="noopener" class="btn-outline small" style="margin-top:8px;">🔗 Ver anuncio publicado</a>` : ""}
+              ${state.listingUrl ? `<a href="${esc(state.listingUrl)}" target="_blank" rel="noopener" class="btn-outline small" style="margin-top:8px;">${icon("link")} Ver anuncio publicado</a>` : ""}
             `}
           ` : ""}
         </div>
@@ -618,13 +619,13 @@ function renderTabPlataformas(item) {
   }).join("");
 
   return `
-    <div class="disclaimer-banner">🖐️ La publicación es siempre manual: el botón final de "publicar" lo pulsas tú en cada app.</div>
+    <div class="disclaimer-banner">${icon("hand")} La publicación es siempre manual: el botón final de "publicar" lo pulsas tú en cada app.</div>
     ${rows}`;
 }
 
 function renderEbayPublishArea(item, state, canPublish) {
   if (state.published && state.ebayItemId) {
-    return `<p class="hint">✅ Publicado de verdad en eBay (artículo <a href="${esc(state.listingUrl)}" target="_blank" rel="noopener">${esc(state.ebayItemId)}</a>). <a href="${esc(state.listingUrl)}" target="_blank" rel="noopener" class="btn-outline small" style="margin-left:6px;">🔗 Ver anuncio publicado</a></p>`;
+    return `<p class="hint">${icon("check")} Publicado de verdad en eBay (artículo <a href="${esc(state.listingUrl)}" target="_blank" rel="noopener">${esc(state.ebayItemId)}</a>). <a href="${esc(state.listingUrl)}" target="_blank" rel="noopener" class="btn-outline small" style="margin-left:6px;">${icon("link")} Ver anuncio publicado</a></p>`;
   }
   if (!canPublish) {
     return `<p class="hint">Aprueba el borrador en la pestaña «Descripción» antes de publicar.</p>`;
@@ -633,7 +634,7 @@ function renderEbayPublishArea(item, state, canPublish) {
     return `<p class="hint">Añade al menos una foto en «Datos y stock» antes de publicar en eBay.</p>`;
   }
   return `
-    <button class="btn btn-accent small" data-action="ebay-publish-listing" data-id="${item.id}">🚀 Publicar automáticamente en eBay</button>
+    <button class="btn btn-accent small" data-action="ebay-publish-listing" data-id="${item.id}">${icon("rocket")} Publicar automáticamente en eBay</button>
     <p class="hint" style="margin-top:6px;">Usa el precio (${fmtEuro(item.price)}), stock (${item.stock}) y precio mínimo orientativo${item.minPrice !== null ? ` (${fmtEuro(item.minPrice)})` : ""} ya definidos en «Datos y stock» para activar Best Offer: las ofertas por debajo del mínimo se auto-rechazan, el resto las revisas tú en la pestaña Ofertas.</p>`;
 }
 
@@ -643,7 +644,7 @@ function renderTabOfertas(item) {
     : `<p class="hint">Todavía no hay ofertas registradas para este artículo.</p>`;
 
   return `
-    <div class="disclaimer-banner">🤝 El asistente sugiere una respuesta; nunca acepta ni cierra la venta por su cuenta.</div>
+    <div class="disclaimer-banner">${icon("handshake")} El asistente sugiere una respuesta; nunca acepta ni cierra la venta por su cuenta.</div>
     <div class="section-title">Registrar oferta recibida</div>
     <form data-form="log-offer" data-id="${item.id}" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:22px;">
       <div class="field" style="margin-bottom:0; width:140px;">
@@ -672,7 +673,7 @@ function renderOfferCard(item, offer) {
         <span class="hint">${fmtDate(offer.date)}</span>
       </div>
       <div class="offer-amounts">Precio: ${fmtEuro(item.price)} · Mínimo orientativo: ${item.minPrice !== null ? fmtEuro(item.minPrice) : "—"}</div>
-      ${offer.priority && pending ? `<p class="hint" style="color:var(--danger); font-weight:600;">⚠ Atención prioritaria: ${esc(offer.reason || "revisar con cuidado")}</p>` : ""}
+      ${offer.priority && pending ? `<p class="hint" style="color:var(--danger); font-weight:600;">${icon("warn")} Atención prioritaria: ${esc(offer.reason || "revisar con cuidado")}</p>` : ""}
       <div class="offer-suggestion">
         Sugerencia del asistente: <strong>${OFFER_ACTION_LABELS[offer.suggestedAction] || offer.suggestedAction}</strong>
         ${offer.counterPrice ? ` (contraoferta: ${fmtEuro(offer.counterPrice)})` : ""}
@@ -683,7 +684,7 @@ function renderOfferCard(item, offer) {
           <textarea data-role="offer-message" data-offer="${offer.id}" rows="2">${esc(offer.suggestedMessage)}</textarea>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn btn-accent small" data-action="confirm-offer" data-id="${item.id}" data-offer="${offer.id}">✔ Confirmar y marcar enviado</button>
+          <button class="btn btn-accent small" data-action="confirm-offer" data-id="${item.id}" data-offer="${offer.id}">${icon("check")} Confirmar y marcar enviado</button>
           <button class="btn-outline small" data-action="discard-offer" data-id="${item.id}" data-offer="${offer.id}">Descartar</button>
         </div>
       ` : `<p class="hint">Enviado el ${fmtDate(offer.sentAt)}: "${esc(offer.finalMessage)}"</p>`}
@@ -739,13 +740,13 @@ function renderTabDatos(item) {
     <div class="field">
       <label>Fotos</label>
       <div class="photo-preview-row">
-        ${item.photos.map((src, i) => `<div class="photo-thumb"><img src="${src}"><button type="button" data-action="remove-item-photo" data-id="${item.id}" data-index="${i}">✕</button></div>`).join("")}
-        <div class="photo-thumb" style="display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--bg);" data-action="trigger-item-photo-input" data-id="${item.id}">➕</div>
+        ${item.photos.map((src, i) => `<div class="photo-thumb"><img src="${src}"><button type="button" data-action="remove-item-photo" data-id="${item.id}" data-index="${i}">${icon("x")}</button></div>`).join("")}
+        <div class="photo-thumb" style="display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--bg);" data-action="trigger-item-photo-input" data-id="${item.id}">${icon("plus")}</div>
       </div>
       <input type="file" id="item-photo-input" accept="image/*" multiple hidden data-id="${item.id}" />
     </div>
     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">
-      <button class="btn" data-action="save-datos" data-id="${item.id}">💾 Guardar datos</button>
+      <button class="btn" data-action="save-datos" data-id="${item.id}">${icon("save")} Guardar datos</button>
       ${item.sold
         ? `<span class="badge badge-sold" style="align-self:center;">Vendido el ${fmtDate(item.soldAt)}</span>`
         : `<button class="btn-outline" data-action="mark-sold" data-id="${item.id}">Marcar como vendido</button>`}
@@ -767,7 +768,7 @@ function renderTabMensajes(item) {
     : `<div class="chat-empty">Todavía no hay mensajes registrados para este artículo.</div>`;
 
   return `
-    <div class="disclaimer-banner">🔌 Wallapop, Vinted, Milanuncios y Facebook no ofrecen API pública para particulares: copia aquí lo que te escriban y prepara la respuesta, el envío final lo haces en la propia app. <strong>Para eBay</strong>, ve a Conexiones — ahí los mensajes son reales, se leen y se responden sin copiar/pegar.</div>
+    <div class="disclaimer-banner">${icon("plug")} Wallapop, Vinted, Milanuncios y Facebook no ofrecen API pública para particulares: copia aquí lo que te escriban y prepara la respuesta, el envío final lo haces en la propia app. <strong>Para eBay</strong>, ve a Conexiones — ahí los mensajes son reales, se leen y se responden sin copiar/pegar.</div>
 
     <div class="section-title">Conversación</div>
     <div class="chat-log">${chatHtml}</div>
@@ -791,7 +792,7 @@ function renderTabMensajes(item) {
         ${PLATFORM_LIST.map((p) => `<option value="${p.key}">${p.name}</option>`).join("")}
       </select>
       <textarea id="reply-text-${item.id}" name="text" rows="2" placeholder="Escribe o elige una plantilla rápida arriba…" required></textarea>
-      <button type="submit" class="btn btn-accent">📋 Copiar y marcar como enviado</button>
+      <button type="submit" class="btn btn-accent">${icon("copy")} Copiar y marcar como enviado</button>
     </form>`;
 }
 
@@ -819,7 +820,7 @@ function renderMantenimiento() {
         </div>`
             )
             .join("")
-        : `<div class="empty-state"><div class="emoji">✅</div><p>No hay sugerencias pendientes por ahora.</p></div>`}
+        : `<div class="empty-state"><div class="emoji">${icon("check")}</div><p>No hay sugerencias pendientes por ahora.</p></div>`}
     </div>`;
 }
 
@@ -864,7 +865,7 @@ function renderOfertas() {
           <div style="margin-bottom:4px;"><a href="#/articulo/${item.id}" style="font-size:12.5px; color:var(--text-muted); text-decoration:none;">${esc(item.title || item.type)} →</a></div>
           ${renderOfferCard(item, offer)}
         `).join("")
-        : `<div class="empty-state"><div class="emoji">💬</div><p>Todavía no hay ofertas registradas.</p></div>`}
+        : `<div class="empty-state"><div class="emoji">${icon("message")}</div><p>Todavía no hay ofertas registradas.</p></div>`}
     </div>`;
 }
 
@@ -903,7 +904,7 @@ function renderCRM() {
             <thead><tr><th>Artículo</th><th>Anuncio</th><th>Fase del pedido</th><th>Último mensaje</th><th>Ofertas</th><th></th></tr></thead>
             <tbody>${rows}</tbody>
           </table></div>`
-        : `<div class="empty-state"><div class="emoji">📋</div><p>Añade artículos al catálogo para verlos aquí.</p></div>`}
+        : `<div class="empty-state"><div class="emoji">${icon("clipboard")}</div><p>Añade artículos al catálogo para verlos aquí.</p></div>`}
     </div>`;
 }
 
@@ -919,7 +920,7 @@ function renderPlataformasGlobal() {
             const state = item.platforms[meta.key];
             const label = item.title || item.type || "Sin título";
             const linkHtml = state.listingUrl
-              ? `<a href="${esc(state.listingUrl)}" target="_blank" rel="noopener" class="btn-outline small">🔗 Ver anuncio</a>`
+              ? `<a href="${esc(state.listingUrl)}" target="_blank" rel="noopener" class="btn-outline small">${icon("link")} Ver anuncio</a>`
               : `<a href="${meta.url}" target="_blank" rel="noopener" class="btn-outline small">Abrir ${meta.name} ↗</a>`;
             return `
         <div class="platform-summary-row">
@@ -982,7 +983,7 @@ function renderConexiones() {
     <div class="view-header">
       <div><h1>Conexiones</h1><p>No se piden contraseñas ni claves de acceso aquí, salvo eBay, que usa el inicio de sesión oficial de eBay (nunca ves ni guardas tu contraseña en esta app).</p></div>
     </div>
-    <div class="disclaimer-banner">🔒 Wallapop, Vinted, Milanuncios y Facebook no tienen API pública para particulares: ahí mensajes y publicación se preparan aquí y se envían a mano. <strong>eBay es la excepción</strong>: está conectada de verdad a través de un backend propio, así que puedes leer y responder mensajes reales sin copiar/pegar.</div>
+    <div class="disclaimer-banner">${icon("lock")} Wallapop, Vinted, Milanuncios y Facebook no tienen API pública para particulares: ahí mensajes y publicación se preparan aquí y se envían a mano. <strong>eBay es la excepción</strong>: está conectada de verdad a través de un backend propio, así que puedes leer y responder mensajes reales sin copiar/pegar.</div>
 
     <div class="connection-card" id="ebay-connection-card">
       <div class="connection-head">
@@ -1014,7 +1015,7 @@ function renderConexiones() {
 
     <form data-form="save-connections">
       ${cards}
-      <button type="submit" class="btn">💾 Guardar conexiones</button>
+      <button type="submit" class="btn">${icon("save")} Guardar conexiones</button>
     </form>`;
 
   loadEbayStatus();
@@ -1031,11 +1032,11 @@ async function loadEbayStatus() {
   }
   if (status.connected) {
     statusText.innerHTML = `<span class="badge badge-approved">Conectada</span> Ya puedes ver y responder mensajes reales de eBay.`;
-    connectArea.innerHTML = `<button class="btn-outline small" data-action="ebay-refresh-messages">🔄 Actualizar mensajes</button>`;
+    connectArea.innerHTML = `<button class="btn-outline small" data-action="ebay-refresh-messages">${icon("refresh")} Actualizar mensajes</button>`;
     loadEbayMessages();
   } else {
     statusText.innerHTML = `<span class="badge badge-draft">No conectada</span>`;
-    connectArea.innerHTML = `<a class="btn btn-accent small" href="${getConnectUrl()}" target="_blank" rel="noopener">🔗 Conectar mi cuenta de eBay</a>`;
+    connectArea.innerHTML = `<a class="btn btn-accent small" href="${getConnectUrl()}" target="_blank" rel="noopener">${icon("link")} Conectar mi cuenta de eBay</a>`;
   }
 }
 
@@ -1056,7 +1057,7 @@ async function loadEbayMessages() {
           <div class="field" style="margin-bottom:8px;">
             <textarea data-role="ebay-reply-text" data-index="${i}" rows="2" placeholder="Escribe tu respuesta…"></textarea>
           </div>
-          <button class="btn btn-accent small" data-action="ebay-send-reply" data-item-id="${esc(m.itemId)}" data-recipient="${esc(m.sender)}" data-index="${i}">📤 Enviar respuesta real</button>
+          <button class="btn btn-accent small" data-action="ebay-send-reply" data-item-id="${esc(m.itemId)}" data-recipient="${esc(m.sender)}" data-index="${i}">${icon("send")} Enviar respuesta real</button>
         </div>`
           )
           .join("")
@@ -1088,7 +1089,7 @@ function renderTendencias() {
     <div class="view-header">
       <div><h1>Tendencias del sector</h1><p>Qué recambios de patinete eléctrico se venden más según tiendas y marketplaces especializados, comparado con tu catálogo.</p></div>
     </div>
-    <div class="disclaimer-banner">🔎 Esto no es una medición en tiempo real de tus competidores — ninguna empresa publica sus cifras de ventas exactas. Es un resumen de fuentes públicas del sector (agosto de 2026) para orientar qué categorías conviene tener en catálogo.</div>
+    <div class="disclaimer-banner">${icon("search")} Esto no es una medición en tiempo real de tus competidores — ninguna empresa publica sus cifras de ventas exactas. Es un resumen de fuentes públicas del sector (agosto de 2026) para orientar qué categorías conviene tener en catálogo.</div>
 
     <div class="card card-pad" style="margin-bottom:20px;">
       ${rows}
@@ -1109,11 +1110,11 @@ function renderDescargar() {
 
   let installBoxHtml;
   if (installed) {
-    installBoxHtml = `<div class="disclaimer-banner">✅ Ya estás usando la app instalada en este dispositivo.</div>`;
+    installBoxHtml = `<div class="disclaimer-banner">${icon("check")} Ya estás usando la app instalada en este dispositivo.</div>`;
   } else if (canInstallNow) {
     installBoxHtml = `
       <div class="card card-pad" style="text-align:center;">
-        <button class="btn btn-accent" id="install-now-btn" style="font-size:15px; padding:12px 22px;">📲 Instalar esta app ahora</button>
+        <button class="btn btn-accent" id="install-now-btn" style="font-size:15px; padding:12px 22px;">${icon("download")} Instalar esta app ahora</button>
         <p class="hint" style="margin-top:10px;">Se añadirá un icono en tu pantalla de inicio para abrirla como una app.</p>
       </div>`;
   } else if (onIOS) {
@@ -1131,13 +1132,13 @@ function renderDescargar() {
       <div><h1>Descargar app en el móvil</h1><p>Instálala como una app en Android o iPhone, sin tiendas de aplicaciones: se abre desde el navegador y queda con icono propio y funcionando sin conexión.</p></div>
     </div>
 
-    <div class="disclaimer-banner">🌐 Esta app está publicada en internet: se abre igual con WiFi o con datos móviles, desde cualquier sitio, sin depender de tu ordenador ni de tu red.</div>
+    <div class="disclaimer-banner">${icon("globe")} Esta app está publicada en internet: se abre igual con WiFi o con datos móviles, desde cualquier sitio, sin depender de tu ordenador ni de tu red.</div>
 
     <div class="card card-pad" style="margin-bottom:18px;">
       <div class="section-title">1. Abre este enlace desde tu móvil</div>
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <input type="text" id="lan-url-input" value="${esc(PUBLIC_APP_URL)}" readonly style="flex:1; min-width:220px;" />
-        <button class="btn-outline small" data-action="copy-text" data-copy="${esc(PUBLIC_APP_URL)}">📋 Copiar enlace</button>
+        <button class="btn-outline small" data-action="copy-text" data-copy="${esc(PUBLIC_APP_URL)}">${icon("copy")} Copiar enlace</button>
       </div>
       <p class="hint" style="margin-top:8px;">Envíatelo por WhatsApp, SMS o email para abrirlo cómodamente desde el móvil.</p>
     </div>

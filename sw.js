@@ -2,7 +2,7 @@
 // se ha cargado al menos una vez. Los datos (catálogo, mensajes, ofertas) viven
 // en localStorage del navegador, no aquí — esto solo cachea los ficheros de la app.
 
-const CACHE_VERSION = "rc-patinete-v20";
+const CACHE_VERSION = "rc-patinete-v21";
 
 const APP_SHELL = [
   "./",
@@ -23,6 +23,7 @@ const APP_SHELL = [
   "./js/auth.js",
   "./js/ebay.js",
   "./js/sync.js",
+  "./js/icons.js",
   "./icons/icon-192.png?v=2",
   "./icons/icon-512.png?v=2",
   "./icons/apple-touch-icon.png?v=2",

@@ -1,6 +1,8 @@
 // Motor de mantenimiento: solo genera sugerencias. Nada se cambia ni se
 // republica automáticamente — todo pasa por revisión y aprobación manual.
 
+import { icon } from "./icons.js";
+
 export function daysSince(isoDate) {
   if (!isoDate) return Infinity;
   return (Date.now() - new Date(isoDate).getTime()) / 86400000;
@@ -29,7 +31,7 @@ export function computeSuggestions(items) {
       suggestions.push({
         itemId: item.id,
         itemTitle: label,
-        icon: "📝",
+        icon: icon("edit"),
         kind: "revisar-borrador",
         title: "Borrador pendiente de revisar",
         text: `Lleva ${Math.floor(daysSince(item.createdAt))} días en borrador sin aprobar. Revisa el texto generado y apruébalo para poder publicarlo.`,
@@ -40,7 +42,7 @@ export function computeSuggestions(items) {
       suggestions.push({
         itemId: item.id,
         itemTitle: label,
-        icon: "📷",
+        icon: icon("camera"),
         kind: "fotos",
         title: "Añadir más fotos",
         text: "Este artículo tiene una foto o ninguna. Los anuncios con varias fotos suelen tener mejor visualización.",
@@ -51,7 +53,7 @@ export function computeSuggestions(items) {
       suggestions.push({
         itemId: item.id,
         itemTitle: label,
-        icon: "📤",
+        icon: icon("send"),
         kind: "publicar",
         title: "Listo para publicar, aún no publicado",
         text: "El anuncio está aprobado pero no se ha marcado como publicado en ninguna plataforma. Publícalo manualmente cuando puedas.",
@@ -62,7 +64,7 @@ export function computeSuggestions(items) {
       suggestions.push({
         itemId: item.id,
         itemTitle: label,
-        icon: "🔄",
+        icon: icon("refresh"),
         kind: "refrescar",
         title: "Conviene refrescar el anuncio",
         text: `No se actualiza desde hace ${Math.floor(daysSince(item.updatedAt))} días. Prueba a mejorar fotos, título o precio para ganar visibilidad, y vuelve a publicarlo.`,
@@ -74,7 +76,7 @@ export function computeSuggestions(items) {
       suggestions.push({
         itemId: item.id,
         itemTitle: label,
-        icon: "💶",
+        icon: icon("tag"),
         kind: "precio",
         title: "Sin ofertas en 3 semanas",
         text: "Ninguna oferta desde que se publicó. Revisa si el precio es competitivo comparándolo con artículos similares.",
@@ -85,7 +87,7 @@ export function computeSuggestions(items) {
       suggestions.push({
         itemId: item.id,
         itemTitle: label,
-        icon: "⏱️",
+        icon: icon("clock"),
         kind: "renovar",
         title: "Anuncio antiguo, valorar renovarlo",
         text: `Publicado hace más de un mes. Renovar o volver a publicarlo (con moderación) puede ayudar a la visibilidad.`,
