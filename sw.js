@@ -2,7 +2,7 @@
 // se ha cargado al menos una vez. Los datos (catálogo, mensajes, ofertas) viven
 // en localStorage del navegador, no aquí — esto solo cachea los ficheros de la app.
 
-const CACHE_VERSION = "rc-patinete-v28";
+const CACHE_VERSION = "rc-patinete-v29";
 
 const APP_SHELL = [
   "./",

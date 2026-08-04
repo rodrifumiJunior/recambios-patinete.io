@@ -201,7 +201,7 @@ function renderInicio() {
 
     <div class="dash-stats">
       <div class="dash-stat" data-action="go" data-href="#/catalogo" data-catalog-status="todos" role="button" tabindex="0"><div class="dash-stat-icon">${icon("grid")}</div><div><div class="label">Artículos activos</div><div class="value">${activeItems.length}</div></div></div>
-      <div class="dash-stat" data-action="go" data-href="#/catalogo" data-catalog-status="todos" role="button" tabindex="0"><div class="dash-stat-icon">${icon("tag")}</div><div><div class="label">Valor en catálogo</div><div class="value">${fmtEuro(totalValue)}</div></div></div>
+      <div class="dash-stat" data-action="go" data-href="#/catalogo" data-catalog-status="todos" role="button" tabindex="0"><div class="dash-stat-icon">${icon("tag")}</div><div><div class="label">Valor de stock</div><div class="value">${fmtEuro(totalValue)}</div></div></div>
       <div class="dash-stat" data-action="go" data-href="#/catalogo" data-catalog-status="vendido" role="button" tabindex="0"><div class="dash-stat-icon">${icon("check")}</div><div><div class="label">Vendidos</div><div class="value">${soldCount}</div></div></div>
       <div class="dash-stat" data-action="go" data-href="#/ofertas" role="button" tabindex="0"><div class="dash-stat-icon">${icon("message")}</div><div><div class="label">Ofertas pendientes</div><div class="value">${pendingOffers}</div><div class="sub">por confirmar</div></div></div>
       <div class="dash-stat" data-action="go" data-href="#/crm" role="button" tabindex="0"><div class="dash-stat-icon">${icon("send")}</div><div><div class="label">Conversaciones sin responder</div><div class="value">${pendingConversations}</div></div></div>
