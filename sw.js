@@ -2,7 +2,7 @@
 // se ha cargado al menos una vez. Los datos (catálogo, mensajes, ofertas) viven
 // en localStorage del navegador, no aquí — esto solo cachea los ficheros de la app.
 
-const CACHE_VERSION = "rc-patinete-v26";
+const CACHE_VERSION = "rc-patinete-v27";
 
 const APP_SHELL = [
   "./",
@@ -29,6 +29,7 @@ const APP_SHELL = [
   "./icons/icon-512.png?v=2",
   "./icons/apple-touch-icon.png?v=2",
   "./icons/favicon-32.png?v=2",
+  "./fonts/PlusJakartaSans-variable.woff2",
 ];
 
 self.addEventListener("install", (event) => {

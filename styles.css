@@ -1,4 +1,13 @@
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("fonts/PlusJakartaSans-variable.woff2") format("woff2-variations"), url("fonts/PlusJakartaSans-variable.woff2") format("woff2");
+}
+
 :root {
+  --font-sans: "Plus Jakarta Sans", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --navy: #1f3a5f;
   --navy-dark: #131f30;
   --navy-light: #2c5182;
@@ -71,7 +80,7 @@
 html, body { height: 100%; }
 body {
   margin: 0;
-  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   background:
     radial-gradient(560px 320px at 100% 0%, color-mix(in srgb, var(--accent) 7%, transparent), transparent),
     radial-gradient(480px 280px at 0% 30%, color-mix(in srgb, var(--info) 6%, transparent), transparent),
