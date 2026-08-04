@@ -14,6 +14,10 @@ export function isIOS() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
+export function isMobileDevice() {
+  return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
+}
+
 export function isInstalled() {
   return isStandalone();
 }
@@ -77,7 +81,7 @@ export function initPWA() {
     deferredPrompt = event;
     document.dispatchEvent(new CustomEvent("pwa-install-available"));
     if (isStandalone() || recentlyDismissed()) return;
-    showBanner("Instala esta app en tu móvil para abrirla como una app y usarla sin conexión.", {
+    showBanner("Instala esta app para abrirla como una app y usarla sin conexión.", {
       showInstallButton: true,
       onInstall: () => promptInstall(),
     });

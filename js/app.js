@@ -6,7 +6,7 @@ import { computeSuggestions } from "./maintenance.js";
 import { ORDER_STAGES, stageMeta } from "./pipeline.js";
 import { computeDemand, topStars, lowDemand, suggestionForLowDemand } from "./demand.js";
 import { SECTOR_TRENDS, SECTOR_BRAND_NOTE, countItemsInCategory } from "./sectorTrends.js";
-import { initPWA, isIOS, isInstalled, canPromptInstall, promptInstall } from "./pwa.js";
+import { initPWA, isIOS, isInstalled, canPromptInstall, promptInstall, isMobileDevice } from "./pwa.js";
 import { initConnectivity } from "./connectivity.js";
 import { initAuth, signOut } from "./auth.js";
 import { getConnectUrl, getEbayStatus, getEbayMessages, sendEbayReply, uploadEbayPhoto, createEbayListing } from "./ebay.js";
@@ -1109,6 +1109,9 @@ function renderDescargar() {
   const installed = isInstalled();
   const canInstallNow = canPromptInstall();
   const onIOS = isIOS();
+  const mobile = isMobileDevice();
+  const deviceWord = mobile ? "el móvil" : "el ordenador";
+  const iconWord = mobile ? "pantalla de inicio" : "escritorio / menú de aplicaciones";
 
   let installBoxHtml;
   if (installed) {
@@ -1116,8 +1119,8 @@ function renderDescargar() {
   } else if (canInstallNow) {
     installBoxHtml = `
       <div class="card card-pad" style="text-align:center;">
-        <button class="btn btn-accent" id="install-now-btn" style="font-size:15px; padding:12px 22px;">${icon("download")} Instalar esta app ahora</button>
-        <p class="hint" style="margin-top:10px;">Se añadirá un icono en tu pantalla de inicio para abrirla como una app.</p>
+        <button class="btn btn-accent" id="install-now-btn" style="font-size:15px; padding:12px 22px;">${icon("download")} Descargar / instalar en ${deviceWord}</button>
+        <p class="hint" style="margin-top:10px;">Se añadirá un icono en tu ${iconWord} para abrirla como una app aparte, sin conexión.</p>
       </div>`;
   } else if (onIOS) {
     installBoxHtml = `
@@ -1126,27 +1129,27 @@ function renderDescargar() {
         <p style="margin:0; font-size:13px; color:var(--text-muted);">Toca el icono de Compartir 􀈂 en la barra inferior y luego "Añadir a pantalla de inicio".</p>
       </div>`;
   } else {
-    installBoxHtml = `<div class="disclaimer-banner">Abre el enlace de abajo desde el navegador de tu móvil para poder instalarlo desde aquí mismo.</div>`;
+    installBoxHtml = `<div class="disclaimer-banner">Ábrela con Chrome o Edge (en el móvil o el ordenador) para poder descargarla/instalarla directamente desde aquí — este navegador no lo permite.</div>`;
   }
 
   main.innerHTML = `
     <div class="view-header">
-      <div><h1>Descargar app en el móvil</h1><p>Instálala como una app en Android o iPhone, sin tiendas de aplicaciones: se abre desde el navegador y queda con icono propio y funcionando sin conexión.</p></div>
+      <div><h1>Descargar app</h1><p>Instálala en el móvil y en el ordenador, sin tiendas de aplicaciones: se abre desde el navegador y queda con icono propio, funcionando sin conexión.</p></div>
     </div>
 
     <div class="disclaimer-banner">${icon("globe")} Esta app está publicada en internet: se abre igual con WiFi o con datos móviles, desde cualquier sitio, sin depender de tu ordenador ni de tu red.</div>
 
     <div class="card card-pad" style="margin-bottom:18px;">
-      <div class="section-title">1. Abre este enlace desde tu móvil</div>
+      <div class="section-title">1. Abre este enlace en el dispositivo donde quieras instalarla</div>
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <input type="text" id="lan-url-input" value="${esc(PUBLIC_APP_URL)}" readonly style="flex:1; min-width:220px;" />
         <button class="btn-outline small" data-action="copy-text" data-copy="${esc(PUBLIC_APP_URL)}">${icon("copy")} Copiar enlace</button>
       </div>
-      <p class="hint" style="margin-top:8px;">Envíatelo por WhatsApp, SMS o email para abrirlo cómodamente desde el móvil.</p>
+      <p class="hint" style="margin-top:8px;">Envíatelo por WhatsApp, SMS o email para abrirlo cómodamente desde el móvil, o pégalo directamente en el navegador del ordenador.</p>
     </div>
 
     <div class="card card-pad" style="margin-bottom:18px;">
-      <div class="section-title">2. Instala la app</div>
+      <div class="section-title">2. Descárgala / instálala</div>
       ${installBoxHtml}
     </div>`;
 
