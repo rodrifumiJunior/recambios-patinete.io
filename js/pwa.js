@@ -47,13 +47,19 @@ function showBanner(text, { showInstallButton, onInstall }) {
   actionBtn.hidden = !showInstallButton;
   banner.hidden = false;
 
+  const autoHide = setTimeout(() => {
+    banner.hidden = true;
+  }, 60000);
+
   if (showInstallButton) {
     actionBtn.onclick = async () => {
+      clearTimeout(autoHide);
       await onInstall();
       banner.hidden = true;
     };
   }
   dismissBtn.onclick = () => {
+    clearTimeout(autoHide);
     banner.hidden = true;
     localStorage.setItem(DISMISS_KEY, String(Date.now()));
   };
